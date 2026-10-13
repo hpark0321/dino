@@ -1,0 +1,280 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#1f2433"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><title>공룡 수 놀이</title>
+</head><body style="margin:0"><style>
+/* Layout: one-screen app. home = profiles + stage picker + egg progress; play = progress dots / pens with ten-frames / prompt / number pad; hatch = egg → baby dino card; book = hatched collection; parent = stats behind a math gate */
+:root{
+  --bg:#1f2433; --panel:#2c3347; --panel-2:#3a4360; --fg:#f5f1e6; --muted:#b5bccf;
+  --s1:#6f9d3c; --s2:#2e86c9; --s3:#e59a2c; --s4:#c9643c; --egg:#9b5fd1;
+  --good:#4cc46f; --bad:#e8553f; --gold:#f6c343; --frame:#4a5578;
+  --display:"Jua","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;-webkit-touch-callout:none}
+#app{height:100%;display:flex;flex-direction:column;padding-inline:14px;padding-block:8px;box-sizing:border-box;gap:8px}
+.screen{display:flex;flex-direction:column;flex:1;min-height:0;gap:10px}
+.topbar{display:flex;align-items:center;gap:10px;min-height:46px}
+.topbar h1{font-size:clamp(20px,3.6vw,30px);margin:0;font-weight:400;flex:1;text-align:center;text-wrap:balance}
+.iconbtn{min-width:46px;height:46px;border:0;border-radius:14px;background:var(--panel-2);color:var(--fg);font-size:20px;padding:0 12px;box-shadow:0 3px 0 #141826;cursor:pointer;display:grid;place-items:center;font-family:inherit;white-space:nowrap}
+.iconbtn:active{transform:translateY(2px);box-shadow:none}
+.iconbtn:focus-visible,.tile:focus-visible,.big:focus-visible,.chip:focus-visible,.num:focus-visible{outline:4px solid var(--gold);outline-offset:2px}
+.profiles{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+.chip{border:0;border-radius:999px;padding:8px 18px;font-family:inherit;font-size:20px;background:var(--panel);color:var(--muted);cursor:pointer;box-shadow:0 3px 0 #141826}
+.chip.on{background:var(--gold);color:#2a1f00}
+.rename{display:flex;gap:6px;align-items:center}
+.rename input,.gate input{font-family:inherit;font-size:18px;padding:8px 12px;border-radius:12px;border:2px solid var(--panel-2);background:var(--panel);color:var(--fg);width:120px}
+
+/* home */
+.stages{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;flex:1;min-height:0}
+.tile{border:0;border-radius:24px;color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;box-shadow:0 6px 0 rgba(0,0,0,.3);font-size:clamp(22px,5vw,40px);text-shadow:0 2px 6px rgba(0,0,0,.5);position:relative}
+.tile small{font-size:.5em;opacity:.95}
+.tile .ex{font-size:.55em;background:rgba(0,0,0,.25);padding:4px 12px;border-radius:12px;margin-top:4px}
+.tile:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.tile.s1{background:var(--s1)}.tile.s2{background:var(--s2)}.tile.s3{background:var(--s3)}.tile.s4{background:var(--s4)}
+.tile.cur::after{content:"지금 단계";position:absolute;top:8px;right:10px;font-size:13px;background:var(--gold);color:#2a1f00;padding:2px 10px;border-radius:10px;text-shadow:none}
+.homefoot{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:16px}
+.seg{display:flex;background:var(--panel);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;border-radius:10px;background:transparent;color:var(--muted);font-family:inherit;font-size:16px;padding:8px 12px;cursor:pointer}
+.seg button.on{background:var(--gold);color:#2a1f00}
+.eggbar{display:flex;align-items:center;gap:10px;background:var(--panel);border-radius:18px;padding:10px 14px;cursor:pointer;border:0;color:var(--fg);font-family:inherit;font-size:18px}
+.eggbar .bar{flex:1;height:14px;border-radius:7px;background:var(--panel-2);overflow:hidden}
+.eggbar .bar i{display:block;height:100%;background:var(--egg);border-radius:7px}
+
+/* play */
+.dots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.dots span{width:14px;height:14px;border-radius:50%;background:var(--panel-2)}
+.dots span.ok{background:var(--good)}.dots span.half{background:var(--gold)}.dots span.cur{box-shadow:0 0 0 3px var(--gold)}
+.stage{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+.pens{display:flex;gap:10px;flex:1;min-height:0;align-items:stretch}
+.pen{flex:1;min-width:0;background:var(--panel);border-radius:20px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;transition:background .2s}
+.pen.away{background:#2a3a4d}
+.pen .lbl{font-size:18px;color:var(--muted)}
+.pen .cnt{position:absolute;top:6px;right:12px;font-size:26px;color:var(--gold);font-variant-numeric:tabular-nums}
+.frame{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:5px;border-radius:12px;background:var(--frame);width:min(100%,calc(5*var(--tk) + 30px));box-sizing:border-box}
+.cell{border-radius:8px;background:rgba(0,0,0,.25);aspect-ratio:1;min-width:0}
+.pen.away{flex:0 0 96px}
+.tok{width:100%;height:100%;border-radius:8px;background:var(--img) center/cover;box-shadow:0 0 0 2px rgba(255,255,255,.25);cursor:pointer;transition:transform .15s,opacity .3s,box-shadow .15s}
+.tok.on{box-shadow:0 0 0 4px var(--gold);transform:scale(1.08)}
+.tok.gone{opacity:.15;transform:scale(.7)}
+.tok.new{animation:pop .5s}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.prompt{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.prompt .big{font-size:clamp(18px,4vw,24px);text-align:left;line-height:1.3}
+.eq{text-align:center;font-size:clamp(28px,7vw,44px);letter-spacing:.06em;color:var(--muted);font-variant-numeric:tabular-nums;min-height:1.2em}
+.eq b{color:var(--gold);font-weight:400}
+.pad{display:grid;grid-template-columns:repeat(var(--padcols),1fr);gap:6px}
+.num{border:0;border-radius:12px;background:var(--panel-2);color:var(--fg);font-family:inherit;font-size:clamp(20px,5vw,30px);padding:8px 0;cursor:pointer;box-shadow:0 3px 0 #141826;display:flex;flex-direction:column;align-items:center;gap:3px;font-variant-numeric:tabular-nums}
+.num .d{display:grid;grid-template-columns:repeat(5,5px);gap:2px}
+.num .d i{width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.num:active{transform:translateY(2px);box-shadow:none}
+.num.right{background:var(--good);color:#06240f}.num.wrong{background:var(--bad);animation:shake .4s}
+.num:disabled{opacity:.5}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.act{display:flex;justify-content:center}
+
+/* result / hatch */
+.result{position:fixed;inset:0;background:rgba(10,12,20,.75);display:none;align-items:center;justify-content:center;z-index:60;padding:16px;box-sizing:border-box}
+.result.show{display:flex}
+.card{background:var(--panel);border-radius:28px;padding:18px;max-width:520px;width:100%;max-height:100%;overflow:auto;text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 0 #141826;box-sizing:border-box}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block}
+.card .name{font-size:clamp(28px,7vw,50px);line-height:1.1;color:var(--gold);text-wrap:balance}
+.card .sub{font-size:clamp(17px,3.4vw,22px);line-height:1.4;text-wrap:balance}
+.egg{font-size:120px;line-height:1;animation:wob 1s infinite;cursor:pointer}
+.egg.crack{animation:crack .8s forwards}
+@keyframes wob{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@keyframes crack{0%{transform:scale(1)}50%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(0);opacity:0}}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.big{border:0;border-radius:18px;padding:12px 18px;font-family:inherit;font-size:clamp(18px,4vw,26px);color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.3)}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.big.next{background:var(--good);color:#06240f}.big.again{background:var(--s3);color:#2a1800}.big.home{background:var(--s2)}.big.hear{background:var(--panel-2)}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;flex:1;min-height:0;overflow:auto;align-content:start}
+.pick{border:0;border-radius:16px;background:var(--panel);box-shadow:0 4px 0 #141826;cursor:pointer;padding:0;overflow:hidden;position:relative;aspect-ratio:1;font-family:inherit}
+.pick img{width:100%;height:100%;object-fit:cover;display:block}
+.pick.locked img{filter:grayscale(1) brightness(.3) blur(2px)}
+.pick .q{position:absolute;inset:auto 0 0 0;padding:4px;font-size:15px;color:#fff;text-shadow:0 2px 6px #000}
+.pick.locked .q{inset:0;display:grid;place-items:center;font-size:36px}
+table{width:100%;border-collapse:collapse;font-size:17px}td,th{padding:8px 6px;border-bottom:1px solid var(--panel-2);text-align:center}th{color:var(--muted);font-weight:400}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:#2a1f00;padding:10px 16px;border-radius:14px;font-size:16px;z-index:80;display:none;max-width:90vw;text-align:center}
+.toast.show{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app"></div>
+<div class="result" id="result"></div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script>
+
+const STAGES={1:{name:'세기',ex:'몇 마리?',cls:'s1'},2:{name:'하나 더 · 하나 빼기',ex:'3 → 4',cls:'s2'},3:{name:'모으기 (덧셈)',ex:'2 + 3',cls:'s3'},4:{name:'덜어내기 (뺄셈)',ex:'5 − 2',cls:'s4'}};
+const RANGES=[5,10,20];
+const LEVELS=[[1,5],[2,5],[3,5],[4,5],[1,10],[2,10],[3,10],[4,10],[1,20],[2,20],[3,20],[4,20]];
+const K=['영','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열','열하나','열둘','열셋','열넷','열다섯','열여섯','열일곱','열여덟','열아홉','스물'];
+const M=['영','한','두','세','네','다섯','여섯','일곱','여덟','아홉','열','열한','열두','열세','열네','열다섯','열여섯','열일곱','열여덟','열아홉','스무'];
+const mari=n=>M[n]+' 마리';
+const ROUNDS=10,EGG_NEED=10;
+const app=document.getElementById('app'),toast=document.getElementById('toast');
+let SESSION=0;const later=(fn,ms)=>{const my=SESSION;setTimeout(()=>{if(SESSION===my)fn()},ms)};
+
+// ---------- 저장 ----------
+let ST={cur:0,profiles:[mk('첫째'),mk('둘째')]};
+function mk(name){return {name,level:4,auto:true,eggs:0,hatched:[],stats:{},today:{d:'',n:0}}}
+try{const s=JSON.parse(localStorage.getItem('dinomath-v1')||'null');if(s&&s.profiles)ST=s}catch(e){}
+function save(){try{localStorage.setItem('dinomath-v1',JSON.stringify(ST))}catch(e){}}
+const P=()=>ST.profiles[ST.cur];
+function showToast(t,ms=2500){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),ms)}
+const rnd=n=>Math.floor(Math.random()*n),pick=a=>a[rnd(a.length)];
+
+// ---------- 소리 ----------
+let ac;const ctx=()=>{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac};
+const tone=(f,t,dur,type='sine',vol=.22)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur)};
+function snd(k){try{ctx();const t=ac.currentTime;
+  if(k==='tap')tone(660,t,.08);else if(k==='count')tone(880,t,.1,'triangle');
+  else if(k==='good'){tone(523,t,.12);tone(784,t+.1,.18)}
+  else if(k==='soft'){tone(330,t,.25,'sine',.15)}
+  else if(k==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.12,.25))}
+  else if(k==='fanfare'){[523,523,523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.3,'triangle',.3))}
+  else if(k==='crack'){tone(200,t,.1,'square',.2);tone(150,t+.15,.1,'square',.2);tone(900,t+.4,.4,'triangle',.25)}
+}catch(e){}}
+const S=window.speechSynthesis;
+function koVoice(){try{const vs=S.getVoices();return vs.find(v=>/^ko/i.test(v.lang)&&/Yuna|Sora|Google|Microsoft/i.test(v.name))||vs.find(v=>/^ko/i.test(v.lang))||null}catch(e){return null}}
+function say(text,delay=0,rate=.85){if(!S)return;setTimeout(()=>{try{S.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=rate;u.pitch=1.05;const v=koVoice();if(v)u.voice=v;S.speak(u)}catch(e){}},delay)}
+if(S){try{S.getVoices();S.onvoiceschanged=()=>S.getVoices()}catch(e){}}
+function voiceStatus(){if(!S)return '이 브라우저는 음성을 지원하지 않습니다';const v=koVoice();return v?'한국어 음성 준비됨: '+v.name:'한국어 음성이 없습니다. 휴대전화 설정에서 한국어 TTS를 설치해 주세요'}
+
+// ---------- 홈 ----------
+function profileBar(editing){
+  return `<div class="profiles">${ST.profiles.map((p,i)=>`<button class="chip ${i===ST.cur?'on':''}" data-p="${i}">${p.name}</button>`).join('')}
+    ${editing?`<span class="rename"><input id="rn" maxlength="8" value="${P().name}"><button class="iconbtn" id="rnok">확인</button></span>`:`<button class="iconbtn" id="rn-start" style="font-size:16px">✎</button>`}</div>`;
+}
+function home(editing=false){SESSION++;
+  const p=P(),[cs,cr]=LEVELS[p.level];
+  app.innerHTML=`<div class="screen">${profileBar(editing)}
+   <div class="topbar"><h1>${p.name}아, 공룡을 세어 볼까?</h1><button class="iconbtn" id="parent" style="font-size:15px">부모</button></div>
+   <div class="stages">${Object.entries(STAGES).map(([k,s])=>`<button class="tile ${s.cls} ${+k===cs?'cur':''}" data-s="${k}">${k}단계<small>${s.name}</small><span class="ex">${s.ex}</span></button>`).join('')}</div>
+   <button class="eggbar" id="bookb"><span>🥚 알 ${p.eggs}/${EGG_NEED}</span><span class="bar"><i style="width:${p.eggs/EGG_NEED*100}%"></i></span><span>🦖 ${p.hatched.length}마리</span></button>
+   <div class="homefoot"><span>수 범위</span><div class="seg"><button data-r="auto" class="${p.auto?'on':''}">자동 (${cr})</button>${RANGES.map(r=>`<button data-r="${r}" class="${!p.auto&&cr===r?'on':''}">${r}</button>`).join('')}</div>
+   <button class="iconbtn" id="voicetest" style="font-size:16px">🔊 소리 확인</button></div></div>`;
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ST.cur=+b.dataset.p;save();snd('tap');say(P().name+' 차례!');home()});
+  const rs=document.getElementById('rn-start');if(rs)rs.onclick=()=>home(true);
+  const ok=document.getElementById('rnok');if(ok){const inp=document.getElementById('rn');inp.focus();const fin=()=>{const v=inp.value.trim();if(v)P().name=v;save();home()};ok.onclick=fin;inp.onkeydown=e=>{if(e.key==='Enter')fin()}}
+  app.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{snd('tap');const s=+b.dataset.s;const li=LEVELS.findIndex(l=>l[0]===s&&l[1]===cr);play(li>=0?li:p.level)});
+  app.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{if(b.dataset.r==='auto')p.auto=true;else{p.auto=false;const li=LEVELS.findIndex(l=>l[0]===cs&&l[1]===+b.dataset.r);p.level=li}save();snd('tap');home()});
+  document.getElementById('voicetest').onclick=()=>{snd('good');say('안녕, '+p.name+'! 공룡을 같이 세어 볼까?');showToast(voiceStatus(),3500)};
+  document.getElementById('bookb').onclick=()=>{snd('tap');book()};
+  document.getElementById('parent').onclick=()=>{snd('tap');gate()};
+}
+
+// ---------- 문제 생성 ----------
+function makeQ(stage,range){
+  const sp=pick(TOK);
+  if(stage===1){const n=1+rnd(range);return {stage,sp,n,ans:n,prompt:`공룡이 몇 마리일까? 하나씩 눌러서 세어 봐`,eq:['?']}}
+  if(stage===2){const plus=Math.random()<.5;let n=plus?1+rnd(range-1):2+rnd(range-1);const ans=plus?n+1:n-1;
+    return {stage,sp,n,plus,ans,prompt:`공룡이 ${mari(n)}야. ${plus?'한 마리가 더 오면':'한 마리가 가 버리면'} 몇 마리?`,eq:[n,plus?'+':'−',1,'=','?']}}
+  if(stage===3){const a=1+rnd(range-1),b=1+rnd(range-a);return {stage,sp,a,b,ans:a+b,prompt:`왼쪽에 ${mari(a)}, 오른쪽에 ${mari(b)}. 모으면 모두 몇 마리?`,eq:[a,'+',b,'=','?']}}
+  const n=2+rnd(range-1),b=1+rnd(n-1);return {stage,sp,n,b,ans:n-b,prompt:`공룡 ${mari(n)} 중에 ${mari(b)}가 물 마시러 가. 공룡을 ${M[b]} 마리 눌러서 보내 줘`,eq:[n,'−',b,'=','?']};
+}
+const frameHTML=(id,n,range,sp,extraCells=0)=>{const cells=Math.max(range>10?20:range>5?10:5,n+extraCells);const rows=Math.ceil(cells/5)*5;
+  return `<div class="frame" id="${id}" style="--img:url('${sp.img}')">${[...Array(rows).keys()].map(i=>`<div class="cell">${i<n?`<div class="tok" data-k="${i}"></div>`:''}</div>`).join('')}</div>`};
+
+// ---------- 플레이 ----------
+function play(level){SESSION++;
+  const p=P(),[stage,range]=LEVELS[level];let qi=0,results=[],firstTry=0;
+  const tk=()=>range>10?'min(11vw,52px)':range>5?'min(13vw,62px)':'min(15vw,70px)';
+  function next(){if(qi>=ROUNDS)return endSession();const q=makeQ(stage,range);render(q)}
+  function render(q){
+    const padcols=range>10?10:range>5?10:5,nums=[...Array(range).keys()].map(i=>i+1);
+    app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back">◀</button><h1>${stage}단계 · ${STAGES[stage].name}</h1><button class="iconbtn" id="hear">🔊</button></div>
+      <div class="dots">${[...Array(ROUNDS).keys()].map(i=>`<span class="${results[i]===2?'ok':results[i]===1?'half':''} ${i===qi?'cur':''}"></span>`).join('')}</div>
+      <div class="stage" style="--tk:${tk()}">
+        <div class="pens" id="pens"></div>
+        <div class="prompt"><button class="big hear" id="ptxt">${q.prompt}</button></div>
+        <div class="act" id="act"></div>
+        <div class="eq" id="eq">${q.eq.map(x=>x==='?'?'<b>?</b>':x).join(' ')}</div>
+        <div class="pad" style="--padcols:${padcols}">${nums.map(n=>`<button class="num" data-n="${n}">${n}${n<=10&&range<=10?`<span class="d">${'<i></i>'.repeat(n)}</span>`:''}</button>`).join('')}</div>
+      </div></div>`;
+    document.getElementById('back').onclick=()=>{snd('tap');home()};
+    document.getElementById('hear').onclick=document.getElementById('ptxt').onclick=()=>say(q.prompt);
+    const pens=document.getElementById('pens'),act=document.getElementById('act');
+    let ready=stage===1||stage===2,sent=0,counted=new Set();
+    // ---- 장면 구성 ----
+    if(stage===1){pens.innerHTML=`<div class="pen">${frameHTML('f1',q.n,range,q.sp)}<span class="cnt" id="cnt"></span></div>`}
+    else if(stage===2){pens.innerHTML=`<div class="pen">${frameHTML('f1',q.n,range,q.sp,1)}<span class="cnt" id="cnt"></span></div>`;
+      later(()=>{const f=document.getElementById('f1');if(!f)return;if(q.plus){const c=f.children[q.n];c.innerHTML=`<div class="tok new" data-k="${q.n}"></div>`;snd('good')}else{const t=f.querySelector(`.tok[data-k="${q.n-1}"]`);t.classList.add('gone');snd('soft')}bindCount()},2200)}
+    else if(stage===3){pens.innerHTML=`<div class="pen"><span class="lbl">왼쪽</span>${frameHTML('f1',q.a,range<=5?5:10,q.sp)}<span class="cnt">${q.a}</span></div><div class="pen"><span class="lbl">오른쪽</span>${frameHTML('f2',q.b,range<=5?5:10,q.sp)}<span class="cnt">${q.b}</span></div>`;
+      act.innerHTML=`<button class="big next" id="merge">한곳에 모으기 ▶</button>`;
+      document.getElementById('merge').onclick=()=>{snd('win');say('모두 한곳에 모였어! 몇 마리인지 세어 봐');pens.innerHTML=`<div class="pen">${frameHTML('f1',q.a+q.b,range,q.sp)}<span class="cnt" id="cnt"></span></div>`;act.innerHTML='';ready=true;bindCount()}}
+    else{pens.innerHTML=`<div class="pen">${frameHTML('f1',q.n,range,q.sp)}<span class="cnt" id="cnt"></span></div><div class="pen away"><span class="lbl">💧 물 마시러 간 공룡</span><span class="cnt" id="away">0</span></div>`;
+      pens.querySelectorAll('.tok').forEach(t=>t.onclick=()=>{if(ready||t.classList.contains('gone'))return;t.classList.add('gone');sent++;snd('soft');document.getElementById('away').textContent=sent;say(K[sent]);
+        if(sent===q.b){ready=true;later(()=>{say(`${mari(q.b)}가 갔어. 남은 공룡은 몇 마리? 눌러서 세어 봐`);bindCount()},900)}})}
+    say(q.prompt,300);
+    function bindCount(){counted=new Set();pens.querySelectorAll('.tok:not(.gone)').forEach(t=>{t.classList.remove('on');t.onclick=()=>{if(counted.has(t))return;counted.add(t);t.classList.add('on');snd('count');say(K[counted.size],0,1);const c=document.getElementById('cnt');if(c)c.textContent=counted.size}})}
+    if(stage===1)bindCount();
+    // ---- 답 ----
+    let tries=0,lock=false;
+    app.querySelectorAll('.num').forEach(b=>b.onclick=()=>{if(lock)return;if(!ready){snd('soft');say(stage===3?'먼저 모으기 버튼을 눌러 봐':stage===4?`먼저 공룡 ${M[q.b]} 마리를 눌러서 보내 줘`:'잠깐만, 공룡이 움직이고 있어');return}
+      const n=+b.dataset.n;
+      if(n===q.ans){lock=true;b.classList.add('right');snd('win');document.getElementById('eq').innerHTML=q.eq.map(x=>x==='?'?`<b>${q.ans}</b>`:x).join(' ');
+        const sc=tries===0?2:1;results[qi]=sc;if(sc===2)firstTry++;stat(stage,range,sc===2);
+        say((tries===0?'맞았어! ':'그래, 맞아! ')+readEq(q),200);later(()=>{qi++;next()},3200)}
+      else{tries++;b.classList.add('wrong');snd('soft');setTimeout(()=>b.classList.remove('wrong'),500);
+        if(tries===1){say('음, 같이 세어 볼까?');countAlong()}
+        else{lock=true;const r=app.querySelector(`.num[data-n="${q.ans}"]`);r.classList.add('right');results[qi]=0;stat(stage,range,false);
+          document.getElementById('eq').innerHTML=q.eq.map(x=>x==='?'?`<b>${q.ans}</b>`:x).join(' ');say(`정답은 ${K[q.ans]}이야. `+readEq(q),200);later(()=>{qi++;next()},3600)}}});
+    function countAlong(){const toks=[...pens.querySelectorAll('.tok:not(.gone)')];toks.forEach(t=>t.classList.remove('on'));
+      toks.forEach((t,i)=>later(()=>{t.classList.add('on');snd('count');say(K[i+1],0,1);const c=document.getElementById('cnt');if(c)c.textContent=i+1;if(i===toks.length-1)setTimeout(()=>say(`모두 ${mari(toks.length)}! 숫자를 눌러 봐`),700)},1000+i*650))}
+  }
+  function readEq(q){if(q.stage===1)return `공룡은 모두 ${mari(q.ans)}!`;if(q.stage===2)return `${K[q.n]} ${q.plus?'더하기':'빼기'} 하나는 ${K[q.ans]}!`;if(q.stage===3)return `${K[q.a]} 더하기 ${K[q.b]}는 ${K[q.ans]}!`;return `${K[q.n]} 빼기 ${K[q.b]}는 ${K[q.ans]}!`}
+  function stat(s,r,ok){const k=s+'-'+r,st=p.stats[k]||(p.stats[k]={n:0,ok:0});st.n++;if(ok)st.ok++;const d=new Date().toISOString().slice(0,10);if(p.today.d!==d)p.today={d,n:0};p.today.n++;save()}
+  function endSession(){
+    let msg='';if(p.auto){if(firstTry>=8&&p.level<LEVELS.length-1){p.level++;msg='아주 잘했어! 다음엔 조금 더 어려운 문제에 도전!'}else if(firstTry<=4&&p.level>0){p.level--;msg='다음엔 조금 쉬운 문제로 해 볼게'}}
+    p.eggs++;const hatch=p.eggs>=EGG_NEED;if(hatch)p.eggs=0;save();
+    const res=document.getElementById('result');snd('fanfare');confetti();
+    res.innerHTML=`<div class="card"><div class="name">${firstTry} / ${ROUNDS} 한 번에 맞았어!</div><div class="sub">${msg||'오늘은 여기까지! 잘했어'}</div>
+      ${hatch?`<div class="egg" id="egg">🥚</div><div class="sub">알이 꿈틀꿈틀! 알을 눌러 봐</div>`:`<div class="sub">🥚 알 ${p.eggs} / ${EGG_NEED} — ${EGG_NEED-p.eggs}번 더 하면 알이 부화해요</div>`}
+      <div class="row">${hatch?'':'<button class="big again" id="again">한 번 더</button><button class="big home" id="homeb">처음으로</button>'}</div></div>`;
+    res.classList.add('show');say(`${K[firstTry]} 문제를 한 번에 맞았어! `+(msg||'오늘은 여기까지, 잘했어!')+(hatch?' 알이 꿈틀꿈틀! 알을 눌러 봐':''),800);
+    const ag=document.getElementById('again');if(ag)ag.onclick=()=>{snd('tap');res.classList.remove('show');play(p.level)};
+    const hb=document.getElementById('homeb');if(hb)hb.onclick=()=>{snd('tap');res.classList.remove('show');home()};
+    const egg=document.getElementById('egg');if(egg)egg.onclick=()=>{egg.classList.add('crack');snd('crack');
+      const left=TOK.filter(t=>!p.hatched.includes(t.en));const d=left.length?pick(left):pick(TOK);if(left.length){p.hatched.push(d.en);save()}
+      setTimeout(()=>{res.innerHTML=`<div class="card"><img src="${d.photo}" alt=""><div class="name">아기 ${d.name} 탄생!</div><div class="sub">${p.name}의 공룡 친구가 ${p.hatched.length}마리가 됐어요</div>
+        <div class="row"><button class="big again" id="again">한 번 더</button><button class="big home" id="homeb">처음으로</button></div></div>`;confetti();snd('fanfare');say(`아기 ${d.name}가 태어났어! ${p.name}의 공룡 친구가 ${mari(p.hatched.length)}가 됐어`,500);
+        document.getElementById('again').onclick=()=>{snd('tap');res.classList.remove('show');play(p.level)};document.getElementById('homeb').onclick=()=>{snd('tap');res.classList.remove('show');home()}},900)};
+  }
+  next();
+}
+// ---------- 도감 ----------
+function book(){SESSION++;const p=P();
+  app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back">◀</button><h1>${p.name}의 공룡 친구 (${p.hatched.length}/${TOK.length})</h1><span style="width:46px"></span></div>
+   <div class="picks">${TOK.map(t=>{const h=p.hatched.includes(t.en);return `<button class="pick ${h?'':'locked'}" data-en="${t.en}"><img src="${t.img}" alt=""><span class="q">${h?t.name:'?'}</span></button>`}).join('')}</div></div>`;
+  say(p.hatched.length?`공룡 친구가 ${mari(p.hatched.length)} 있어`:'아직 친구가 없어. 문제를 풀어서 알을 모아 보자!');
+  document.getElementById('back').onclick=()=>{snd('tap');home()};
+  app.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{const t=TOK.find(x=>x.en===b.dataset.en);snd('tap');say(p.hatched.includes(t.en)?t.name+'!':'아직 알에서 안 나왔어')});
+}
+// ---------- 부모 ----------
+function gate(){SESSION++;const a=3+rnd(7),b=3+rnd(7);
+  app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back">◀</button><h1>부모 확인</h1><span style="width:46px"></span></div>
+   <div class="gate" style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px"><div style="font-size:26px">${a} × ${b} = ?</div><input id="g" inputmode="numeric" autocomplete="off"><button class="big next" id="ok">확인</button></div></div>`;
+  document.getElementById('back').onclick=home;const g=document.getElementById('g');g.focus();
+  const chk=()=>{if(+g.value===a*b)parent();else{g.value='';showToast('다시 입력해 주세요')}};document.getElementById('ok').onclick=chk;g.onkeydown=e=>{if(e.key==='Enter')chk()};
+}
+function parent(){const p=P();
+  const rows=LEVELS.map(([s,r],i)=>{const st=p.stats[s+'-'+r];return `<tr ${i===p.level?'style="color:var(--gold)"':''}><td>${s}단계 ${STAGES[s].name}</td><td>${r}</td><td>${st?st.n:0}</td><td>${st?Math.round(st.ok/st.n*100)+'%':'-'}</td></tr>`}).join('');
+  app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back">◀</button><h1>${p.name} 학습 기록</h1><span style="width:46px"></span></div>
+   <div style="overflow:auto;flex:1;min-height:0"><p style="margin:4px 0 10px;color:var(--muted)">오늘 푼 문제: ${p.today.d===new Date().toISOString().slice(0,10)?p.today.n:0}개 · 현재 단계: ${LEVELS[p.level][0]}단계 / ${LEVELS[p.level][1]}까지 · 부화한 공룡: ${p.hatched.length}마리</p>
+   <table><tr><th>단계</th><th>범위</th><th>푼 문제</th><th>한 번에 정답</th></tr>${rows}</table>
+   <p style="color:var(--muted);font-size:14px">단계는 10문제 중 8개 이상을 한 번에 맞히면 올라가고, 4개 이하면 내려갑니다. 첫 화면에서 단계·범위를 직접 고를 수도 있습니다.</p>
+   <div class="row"><button class="big home" id="reset">이 아이 기록 초기화</button></div></div></div>`;
+  document.getElementById('back').onclick=home;
+  document.getElementById('reset').onclick=()=>{const n=p.name;ST.profiles[ST.cur]=mk(n);save();showToast('초기화했습니다');home()};
+}
+function confetti(){const c=document.getElementById('confetti'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
+  const cols=['#e8553f','#f6c343','#2e86c9','#4cc46f','#c77dff'],ps=Array.from({length:110},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,v:2+Math.random()*3,s:6+Math.random()*8,c:cols[Math.random()*5|0],r:Math.random()*6}));
+  let t0=performance.now();(function f(t){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.y+=p.v;p.r+=.05;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});
+    if(t-t0<3000)requestAnimationFrame(f);else x.clearRect(0,0,c.width,c.height)})(t0)}
+home();
+if('serviceWorker' in navigator&&location.protocol==='https:'&&document.querySelector('link[rel=manifest]')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+</script>
+</body></html>
