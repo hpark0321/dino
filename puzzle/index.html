@@ -1,6 +1,6 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#1d2a24"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><title>공룡 조각 맞추기</title>
 </head><body style="margin:0"><style>
-/* Layout: one-screen app. home = profiles + 3 category tiles + quiz/book row; picker = photo grid; puzzle = grid board + tray; quiz = 3 photo choices; book = sticker collection */
+/* Layout: one-screen app. home = profiles + 3 category tiles + quiz/book row; picker = photo grid; puzzle = grid board + auto-fitted piece tray; quiz = 3 photo choices; book = sticker collection */
 :root{
   --bg:#1d2a24; --panel:#2b3b33; --panel-2:#354a40; --fg:#f4efe4; --muted:#b9c6bc;
   --land:#6f9d3c; --sea:#2e86c9; --sky:#e59a2c; --quiz:#9b5fd1; --book:#c9643c;
@@ -9,36 +9,29 @@
   color-scheme:dark;
 }
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);
-  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;-webkit-touch-callout:none}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;-webkit-touch-callout:none}
 #app{height:100%;display:flex;flex-direction:column;padding-inline:14px;padding-block:8px;box-sizing:border-box;gap:8px}
 .screen{display:flex;flex-direction:column;flex:1;min-height:0;gap:10px}
 .topbar{display:flex;align-items:center;gap:10px;min-height:46px}
 .topbar h1{font-size:clamp(20px,3.6vw,30px);margin:0;font-weight:400;flex:1;text-align:center;text-wrap:balance}
-.iconbtn{min-width:46px;height:46px;border:0;border-radius:14px;background:var(--panel-2);color:var(--fg);font-size:20px;padding:0 12px;
-  box-shadow:0 3px 0 #16201b;cursor:pointer;display:grid;place-items:center;font-family:inherit;white-space:nowrap}
+.iconbtn{min-width:46px;height:46px;border:0;border-radius:14px;background:var(--panel-2);color:var(--fg);font-size:20px;padding:0 12px;box-shadow:0 3px 0 #16201b;cursor:pointer;display:grid;place-items:center;font-family:inherit;white-space:nowrap}
 .iconbtn:active{transform:translateY(2px);box-shadow:none}
 .iconbtn:focus-visible,.tile:focus-visible,.pick:focus-visible,.big:focus-visible,.chip:focus-visible{outline:4px solid var(--gold);outline-offset:2px}
 .iconbtn.on{background:var(--gold);color:#2a1f00}
-
-/* profiles */
 .profiles{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
 .chip{border:0;border-radius:999px;padding:8px 18px;font-family:inherit;font-size:20px;background:var(--panel);color:var(--muted);cursor:pointer;box-shadow:0 3px 0 #16201b}
 .chip.on{background:var(--gold);color:#2a1f00}
 .chip:active{transform:translateY(2px);box-shadow:none}
 .rename{display:flex;gap:6px;align-items:center}
 .rename input{font-family:inherit;font-size:18px;padding:8px 12px;border-radius:12px;border:2px solid var(--panel-2);background:var(--panel);color:var(--fg);width:120px}
-
-/* home */
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1;min-height:0}
 @media (max-aspect-ratio:1/1){.tiles{grid-template-columns:1fr}}
-.tile{border:0;border-radius:24px;color:#fff;font-family:inherit;font-size:clamp(26px,5.5vw,50px);cursor:pointer;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;
-  box-shadow:0 6px 0 rgba(0,0,0,.3);transition:transform .08s;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.tile{border:0;border-radius:24px;color:#fff;font-family:inherit;font-size:clamp(26px,5.5vw,50px);cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;box-shadow:0 6px 0 rgba(0,0,0,.3);transition:transform .08s;text-shadow:0 2px 6px rgba(0,0,0,.6)}
 .tile::before{content:"";position:absolute;inset:0;background:var(--pic) center/cover;opacity:.55}
 .tile>*{position:relative}
 .tile:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .tile small{font-size:.45em;opacity:.95}
+.tile .en{font-size:.5em;opacity:.9;letter-spacing:.04em}
 .tile.land{background:var(--land)} .tile.sea{background:var(--sea)} .tile.sky{background:var(--sky)}
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .mode{border:0;border-radius:20px;padding:14px 10px;font-family:inherit;font-size:clamp(20px,4vw,28px);color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -49,49 +42,36 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);
 .seg{display:flex;background:var(--panel);border-radius:14px;padding:4px;gap:4px}
 .seg button{border:0;border-radius:10px;background:transparent;color:var(--muted);font-family:inherit;font-size:16px;padding:8px 12px;cursor:pointer}
 .seg button.on{background:var(--gold);color:#2a1f00}
-
-/* picker & book */
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;flex:1;min-height:0;overflow:auto;padding-bottom:8px;align-content:start}
 .pick{border:0;border-radius:20px;background:var(--panel);box-shadow:0 5px 0 #16201b;cursor:pointer;padding:0;overflow:hidden;position:relative;aspect-ratio:4/3;font-family:inherit}
 .pick:active{transform:translateY(3px);box-shadow:0 2px 0 #16201b}
 .pick img{width:100%;height:100%;object-fit:cover;display:block;filter:blur(6px) brightness(.55) saturate(.6);transform:scale(1.08)}
 .pick.done img{filter:none;transform:none}
-.pick .q{position:absolute;inset:auto 0 0 0;padding:6px;font-size:clamp(18px,3vw,24px);color:#fff;text-shadow:0 2px 6px #000}
-.pick .star{position:absolute;top:6px;right:10px;font-size:28px;color:var(--gold);text-shadow:0 2px 4px #000}
+.pick .q{position:absolute;inset:auto 0 0 0;padding:6px;font-size:clamp(18px,3vw,24px);color:#fff;text-shadow:0 2px 6px #000;line-height:1.1}
+.pick .q small{display:block;font-size:.65em;opacity:.9;letter-spacing:.03em}
 .pick .num{position:absolute;top:8px;left:10px;font-size:14px;color:#fff;opacity:.7}
 .pick .lvl{position:absolute;top:8px;right:10px;font-size:13px;color:#fff;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:10px}
 .book .sec{grid-column:1/-1;font-size:22px;color:var(--gold);margin-top:6px}
 .book .pick.locked img{filter:grayscale(1) brightness(.3) blur(2px)}
 .book .pick.locked .q{font-size:40px;text-align:center;top:0;display:grid;place-items:center}
 .trophy{grid-column:1/-1;text-align:center;font-size:clamp(22px,5vw,34px);color:var(--gold);padding:10px}
-
-/* puzzle */
 .puzzle{display:grid;flex:1;min-height:0;gap:10px;grid-template-rows:auto minmax(0,1fr)}
-@media (min-aspect-ratio:1/1){.puzzle{grid-template-columns:minmax(0,1fr) minmax(220px,36%);grid-template-rows:1fr}}
+@media (min-aspect-ratio:1/1){.puzzle{grid-template-columns:minmax(0,1fr) minmax(220px,38%);grid-template-rows:1fr}}
 .boardwrap{display:grid;place-items:center;min-height:0;min-width:0;position:relative}
-#board{position:relative;aspect-ratio:4/3;max-width:100%;max-height:100%;width:100%;border-radius:16px;overflow:hidden;
-  box-shadow:0 0 0 4px var(--panel-2),0 10px 30px rgba(0,0,0,.4);display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-template-rows:repeat(var(--rows),1fr);
-  transition:box-shadow .15s;touch-action:none}
+#board{position:relative;aspect-ratio:4/3;max-width:100%;max-height:100%;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 0 0 4px var(--panel-2),0 10px 30px rgba(0,0,0,.4);display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-template-rows:repeat(var(--rows),1fr);transition:box-shadow .15s;touch-action:none}
 @media (min-aspect-ratio:1/1){#board{width:auto;height:100%}}
 #board.shake{animation:shake .4s;box-shadow:0 0 0 6px var(--bad),0 10px 30px rgba(0,0,0,.4)}
 #board.done{box-shadow:0 0 0 6px var(--good),0 10px 30px rgba(0,0,0,.4)}
 @keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
-.slot{position:relative;background:var(--img) no-repeat;background-size:var(--cols-pct) var(--rows-pct);background-position:var(--bp);
-  filter:grayscale(1) brightness(.5) blur(1.5px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.slot{position:relative;background:var(--img) no-repeat;background-size:var(--cols-pct) var(--rows-pct);background-position:var(--bp);filter:grayscale(1) brightness(.5) blur(1.5px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
 .slot.hint{filter:grayscale(.6) brightness(.75)}
 .slot.filled{filter:none;box-shadow:none;animation:pop .3s}
 .slot.target{box-shadow:inset 0 0 0 4px var(--gold)}
 @keyframes pop{0%{transform:scale(.9)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
-.tray{background:var(--panel);border-radius:20px;padding:10px;display:grid;gap:8px;min-height:0;min-width:0;box-sizing:border-box;
-  grid-template-columns:repeat(auto-fill,minmax(104px,1fr));align-content:center;overflow:auto}
-@media (min-aspect-ratio:1/1){.tray{grid-template-columns:repeat(2,1fr)}}
-.piece{aspect-ratio:4/3;border-radius:10px;background:var(--img) no-repeat;background-size:var(--cols-pct) var(--rows-pct);background-position:var(--bp);
-  box-shadow:0 4px 0 #16201b,0 0 0 2px rgba(255,255,255,.2);touch-action:none;cursor:grab}
+.tray{background:var(--panel);border-radius:20px;padding:10px;display:grid;gap:8px;min-height:0;min-width:0;box-sizing:border-box;align-content:center;justify-content:center;overflow:auto}
+.piece{aspect-ratio:4/3;border-radius:10px;background:var(--img) no-repeat;background-size:var(--cols-pct) var(--rows-pct);background-position:var(--bp);box-shadow:0 4px 0 #16201b,0 0 0 2px rgba(255,255,255,.2);touch-action:none;cursor:grab}
 .piece.gone{visibility:hidden}
-#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:50;display:none;border-radius:10px;background:var(--img) no-repeat;
-  background-size:var(--cols-pct) var(--rows-pct);background-position:var(--bp);box-shadow:0 12px 24px rgba(0,0,0,.5),0 0 0 3px var(--gold)}
-
-/* quiz */
+#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:50;display:none;border-radius:10px;background:var(--img) no-repeat;background-size:var(--cols-pct) var(--rows-pct);background-position:var(--bp);box-shadow:0 12px 24px rgba(0,0,0,.5),0 0 0 3px var(--gold)}
 .quiz{display:flex;flex-direction:column;flex:1;min-height:0;gap:10px}
 .dots{display:flex;gap:6px;justify-content:center}
 .dots span{width:14px;height:14px;border-radius:50%;background:var(--panel-2)}
@@ -105,16 +85,22 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);
 .choice img{width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block}
 .choice.right{box-shadow:0 0 0 6px var(--good)} .choice.wrong{box-shadow:0 0 0 6px var(--bad);animation:shake .4s}
 .choice:active{transform:translateY(3px)}
-
-/* result */
 .result{position:fixed;inset:0;background:rgba(10,16,13,.7);display:none;align-items:center;justify-content:center;z-index:60;padding:16px;box-sizing:border-box}
 .result.show{display:flex}
-.card{background:var(--panel);border-radius:28px;padding:16px;max-width:560px;width:100%;max-height:100%;overflow:auto;text-align:center;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 0 #16201b;box-sizing:border-box}
-.card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block}
-.card .name{font-size:clamp(30px,8vw,56px);line-height:1.1;text-wrap:balance;color:var(--gold)}
+.card{background:var(--panel);border-radius:28px;padding:16px;max-width:600px;width:100%;max-height:100%;overflow:auto;text-align:center;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 0 #16201b;box-sizing:border-box}
+.card img{width:100%;max-height:38vh;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block}
+.card .name{font-size:clamp(28px,7vw,52px);line-height:1.1;text-wrap:balance;color:var(--gold)}
 .card .en{color:var(--muted);font-size:clamp(16px,3vw,22px);letter-spacing:.04em;margin-top:-6px}
 .card .intro{font-size:clamp(17px,3.4vw,22px);line-height:1.4;text-wrap:balance}
+.card .fact{font-size:clamp(15px,2.8vw,18px);line-height:1.5;text-align:left;background:var(--panel-2);border-radius:14px;padding:10px 14px}
+.card .fact .enf{color:var(--muted);margin-top:6px;font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:.92em}
 .card .levelup{color:var(--good);font-size:18px}
+@media (min-aspect-ratio:1/1) and (min-width:700px){
+ .card:has(img){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px 18px;max-width:1000px;text-align:left;align-items:start;align-content:start}
+ .card:has(img)>*{grid-column:2;margin:0}
+ .card:has(img) img{grid-column:1;grid-row:1/span 6;height:100%;max-height:none;object-fit:cover;align-self:stretch}
+ .card:has(img) .row{grid-column:1/-1;justify-content:center}
+}
 .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .big{border:0;border-radius:18px;padding:12px 18px;font-family:inherit;font-size:clamp(18px,4vw,26px);color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.3)}
 .big:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
@@ -132,52 +118,60 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);
 <div class="toast" id="toast"></div>
 
 <script src="data.js"></script>
+<script src="voice/manifest.js"></script>
 <script>
 
-const INTRO={'Tyrannosaurus rex':'나는 티라노사우루스야! 이빨이 바나나만큼 커.','Triceratops':'나는 트리케라톱스야! 머리에 뿔이 세 개 있어.','Stegosaurus':'나는 스테고사우루스야! 등에 커다란 판이 쭉 붙어 있어.','Brachiosaurus':'나는 브라키오사우루스야! 목이 길어서 높은 나무 잎을 먹어.','Ankylosaurus':'나는 안킬로사우루스야! 꼬리 끝에 망치가 달려 있어.','Velociraptor':'나는 벨로키랍토르야! 작지만 아주 빠르게 달려.','Parasaurolophus':'나는 파라사우롤로푸스야! 머리의 긴 볏으로 나팔 소리를 내.','Pachycephalosaurus':'나는 파키케팔로사우루스야! 머리가 돌처럼 단단해.','Iguanodon':'나는 이구아노돈이야! 엄지손가락에 뾰족한 가시가 있어.','Carnotaurus':'나는 카르노타우루스야! 눈 위에 뿔이 두 개 있고 팔은 아주 짧아.',
-'Mosasaurus':'나는 모사사우루스야! 바다에서 가장 힘센 사냥꾼이야.','Tylosaurus':'나는 틸로사우루스야! 길쭉한 주둥이로 물고기를 잡아.','Plesiosaurus':'나는 플레시오사우루스야! 목이 길고 지느러미 네 개로 헤엄쳐.','Elasmosaurus':'나는 엘라스모사우루스야! 목이 몸보다 더 길어.','Liopleurodon':'나는 리오플레우로돈이야! 입이 아주 크고 힘이 세.','Kronosaurus':'나는 크로노사우루스야! 머리가 자동차만큼 커.','Ichthyosaurus':'나는 이크티오사우루스야! 돌고래처럼 생겼고 눈이 아주 커.','Shonisaurus':'나는 쇼니사우루스야! 바다 공룡 중에 제일 커.','Nothosaurus':'나는 노토사우루스야! 바다에서 헤엄치고 바위 위에서 쉬어.','Pliosaurus':'나는 플리오사우루스야! 이빨이 길고 턱 힘이 엄청 세.',
-'Pteranodon':'나는 프테라노돈이야! 머리 뒤에 긴 볏이 있고 물고기를 잡아먹어.','Quetzalcoatlus':'나는 케찰코아틀루스야! 날개를 펴면 비행기만큼 커.','Dimorphodon':'나는 디모르포돈이야! 머리가 크고 이빨이 두 종류야.','Rhamphorhynchus':'나는 람포린쿠스야! 긴 꼬리 끝에 마름모 깃발이 있어.','Tapejara':'나는 타페야라야! 머리에 알록달록 큰 볏이 있어.','Dsungaripterus':'나는 중가립테루스야! 위로 휜 부리로 조개를 깨 먹어.','Anhanguera':'나는 안항구에라야! 부리 끝이 둥글고 바다 위를 날아.','Nyctosaurus':'나는 닉토사우루스야! 머리에 돛대 같은 긴 뿔이 있어.','Thalassodromeus':'나는 탈라소드로메우스야! 머리 볏이 아주 커다래.','Tupandactylus':'나는 투판닥틸루스야! 머리 볏이 돛처럼 높아.'};
-DINOS.forEach(d=>d.intro=INTRO[d.en]||'');
-const CATS={land:{name:'육상 공룡',short:'육상'},sea:{name:'바다 공룡',short:'바다'},sky:{name:'하늘 공룡',short:'하늘'}};
+/* ---- 음성 엔진: 녹음 클립(VOICE_CLIPS / voice 폴더) 우선, 없으면 기기 TTS ---- */
+const CLIPS=window.VOICE_CLIPS||{};const FILES=new Set(window.VOICE_FILES||[]);
+const clipUrl=k=>CLIPS[k]||(FILES.has(k)?'voice/'+k+'.mp3':null);
+const hasClips=()=>Object.keys(CLIPS).length>0||FILES.size>0;
+const AUD=new Audio();AUD.preload='auto';let audioUnlocked=false;
+addEventListener('pointerdown',()=>{if(audioUnlocked)return;audioUnlocked=true;try{AUD.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';AUD.play().catch(()=>{})}catch(e){}},{capture:true});
+const S=window.speechSynthesis;let seqId=0;
+if(S){try{S.getVoices();S.onvoiceschanged=()=>S.getVoices()}catch(e){}}
+function pickVoice(lang){try{const vs=S.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().replace('_','-').startsWith(lang));
+  const score=v=>(/premium|프리미엄/i.test(v.name)?8:0)+(/enhanced|향상/i.test(v.name)?6:0)+(/natural|neural/i.test(v.name)?5:0)+(/yuna|sora|jenny|aria|samantha|ava|zoe|google/i.test(v.name)?2:0)+(/female|여성/i.test(v.name)?1:0)+(v.localService?1:0);
+  return vs.sort((a,b)=>score(b)-score(a))[0]||null}catch(e){return null}}
+function stopSpeech(){seqId++;try{AUD.onended=null;AUD.pause()}catch(e){}try{S&&S.cancel()}catch(e){}}
+const K=(k,t)=>({k,t,lang:'ko'}),E=(k,t)=>({k,t,lang:'en'});
+// items: 문자열 또는 [{k,t,lang}] ; 모든 항목에 클립이 있으면 클립 재생, 아니면 TTS
+function speak(items,delay=0){if(typeof items==='string')items=[{t:items,lang:'ko'}];items=items.filter(Boolean);stopSpeech();const my=seqId;
+  setTimeout(()=>{if(my!==seqId)return;const useClips=hasClips()&&items.length&&items.every(i=>i.k&&clipUrl(i.k));useClips?playClips(items,0,my):tts(items,my)},delay)}
+function playClips(items,i,my){if(my!==seqId||i>=items.length)return;try{AUD.src=clipUrl(items[i].k);AUD.onended=()=>playClips(items,i+1,my);AUD.play().catch(()=>{if(my===seqId)tts(items.slice(i),my)})}catch(e){tts(items.slice(i),my)}}
+function tts(items,my){if(!S||my!==seqId)return;const groups=[];items.forEach(i=>{const l=i.lang||'ko',g=groups[groups.length-1];if(g&&g.lang===l)g.t+=' '+i.t;else groups.push({lang:l,t:i.t})});
+  groups.forEach(g=>{try{const u=new SpeechSynthesisUtterance(g.t);u.lang=g.lang==='en'?'en-US':'ko-KR';u.rate=g.lang==='en'?.9:.85;u.pitch=1.05;const v=pickVoice(g.lang);if(v)u.voice=v;S.speak(u)}catch(e){}})}
+const say=(text,delay=0)=>speak(text,delay);
+function voiceStatus(){if(hasClips())return '녹음된 목소리를 사용 중입니다';if(!S)return '이 브라우저는 음성을 지원하지 않습니다';const v=pickVoice('ko');return v?'기기 음성 사용: '+v.name:'한국어 음성이 없습니다. 설정에서 한국어 TTS를 설치해 주세요'}
+const hasBatchim=s=>{const c=s.charCodeAt(s.length-1)-0xAC00;return c>=0&&c<11172&&c%28!==0};
+
+DINOS.forEach((d,i)=>{d.i=i;const f=FACTS[d.en]||{};d.intro=f.intro||'';d.introEn=f.introEn||'';d.fact=f.fact||'';d.factEn=f.factEn||''});
+const CATS={land:{name:'육상 공룡',short:'육상',en:'Land'},sea:{name:'바다 공룡',short:'바다',en:'Sea'},sky:{name:'하늘 공룡',short:'하늘',en:'Sky'}};
 const LEVELS=[4,8,12],GRID={4:[2,2],8:[4,2],12:[4,3]};
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 let SESSION=0;const later=(fn,ms)=>{const my=SESSION;setTimeout(()=>{if(SESSION===my)fn()},ms)};
 
-// ---------- 저장: 프로필 ----------
-let ST={cur:0,profiles:[{name:'첫째',done:{},level:8,auto:true},{name:'둘째',done:{},level:8,auto:true}]};
-try{const s=JSON.parse(localStorage.getItem('dino-v2')||'null');if(s&&s.profiles)ST=s;
-  else{const old=JSON.parse(localStorage.getItem('dino-done')||'{}');ST.profiles[0].done=old}}catch(e){}
+let ST={cur:0,en:true,profiles:[{name:'첫째',done:{},level:8,auto:true},{name:'둘째',done:{},level:8,auto:true}]};
+try{const s=JSON.parse(localStorage.getItem('dino-v2')||'null');if(s&&s.profiles){ST=Object.assign({en:true},s)}else{const old=JSON.parse(localStorage.getItem('dino-done')||'{}');ST.profiles[0].done=old}}catch(e){}
 function save(){try{localStorage.setItem('dino-v2',JSON.stringify(ST))}catch(e){}}
 const P=()=>ST.profiles[ST.cur];
 function showToast(t,ms=2500){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),ms)}
+// 이름 + 설명 음성 (영어 모드면 영어도)
+const nameItems=d=>[K('name_'+d.i,d.name+'!'),ST.en?E('en_name_'+d.i,d.en+'!'):null];
+const introItems=d=>[K('intro_'+d.i,d.intro),ST.en?E('en_intro_'+d.i,d.introEn):null];
+const factItems=d=>[K('fact_'+d.i,d.fact),ST.en?E('en_fact_'+d.i,d.factEn):null];
 
-// ---------- 소리 ----------
 let ac;const ctx=()=>{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac};
-const tone=(f,t,dur,type='sine',vol=.25)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
-  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur)};
+const tone=(f,t,dur,type='sine',vol=.25)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur)};
 function snd(kind){try{ctx();const t=ac.currentTime;
-  if(kind==='tap')tone(660,t,.08);
-  else if(kind==='good'){tone(523,t,.12);tone(784,t+.1,.18)}
-  else if(kind==='bad'){tone(140,t,.3,'square',.15)}
-  else if(kind==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.12,.25))}
-  else if(kind==='fanfare'){[523,523,523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.3,'triangle',.3))}
+  if(kind==='tap')tone(660,t,.08);else if(kind==='good'){tone(523,t,.12);tone(784,t+.1,.18)}else if(kind==='bad'){tone(140,t,.3,'square',.15)}
+  else if(kind==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.12,.25))}else if(kind==='fanfare'){[523,523,523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.3,'triangle',.3))}
 }catch(e){}}
 function roar(cat){try{ctx();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(),fl=ac.createBiquadFilter();fl.type='lowpass';
   if(cat==='land'){o.type='sawtooth';fl.frequency.value=420;o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(55,t+.8);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.9);o.connect(fl).connect(g).connect(ac.destination);o.start(t);o.stop(t+.9)}
-  else if(cat==='sea'){o.type='sine';fl.frequency.value=900;const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=6;lg.gain.value=25;lfo.connect(lg).connect(o.frequency);
-    o.frequency.setValueAtTime(220,t);o.frequency.linearRampToValueAtTime(420,t+.5);o.frequency.linearRampToValueAtTime(180,t+1.3);g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+1.4);
-    o.connect(fl).connect(g).connect(ac.destination);lfo.start(t);o.start(t);o.stop(t+1.4);lfo.stop(t+1.4)}
-  else{o.type='square';fl.frequency.value=3000;g.gain.setValueAtTime(.12,t);for(let i=0;i<3;i++){const s=t+i*.28;o.frequency.setValueAtTime(1500,s);o.frequency.exponentialRampToValueAtTime(700,s+.2)}
-    g.gain.exponentialRampToValueAtTime(.001,t+.9);o.connect(fl).connect(g).connect(ac.destination);o.start(t);o.stop(t+.9)}
+  else if(cat==='sea'){o.type='sine';fl.frequency.value=900;const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=6;lg.gain.value=25;lfo.connect(lg).connect(o.frequency);o.frequency.setValueAtTime(220,t);o.frequency.linearRampToValueAtTime(420,t+.5);o.frequency.linearRampToValueAtTime(180,t+1.3);g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+1.4);o.connect(fl).connect(g).connect(ac.destination);lfo.start(t);o.start(t);o.stop(t+1.4);lfo.stop(t+1.4)}
+  else{o.type='square';fl.frequency.value=3000;g.gain.setValueAtTime(.12,t);for(let i=0;i<3;i++){const s=t+i*.28;o.frequency.setValueAtTime(1500,s);o.frequency.exponentialRampToValueAtTime(700,s+.2)}g.gain.exponentialRampToValueAtTime(.001,t+.9);o.connect(fl).connect(g).connect(ac.destination);o.start(t);o.stop(t+.9)}
 }catch(e){}}
-// ---------- 음성 ----------
-const S=window.speechSynthesis;
-function koVoice(){try{const vs=S.getVoices();return vs.find(v=>/^ko/i.test(v.lang)&&/Yuna|Sora|Google|Microsoft/i.test(v.name))||vs.find(v=>/^ko/i.test(v.lang))||null}catch(e){return null}}
-function say(text,delay=0){if(!S)return;setTimeout(()=>{try{S.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=.85;u.pitch=1.05;const v=koVoice();if(v)u.voice=v;S.speak(u)}catch(e){}},delay)}
-if(S){try{S.getVoices();S.onvoiceschanged=()=>S.getVoices()}catch(e){}}
-function voiceStatus(){if(!S)return '이 브라우저는 음성을 지원하지 않습니다';const v=koVoice();return v?'한국어 음성 준비됨: '+v.name:'한국어 음성이 없습니다. 휴대전화 설정에서 한국어 TTS를 설치해 주세요'}
 
-// ---------- 홈 ----------
 function profileBar(editing){
   return `<div class="profiles">${ST.profiles.map((p,i)=>`<button class="chip ${i===ST.cur?'on':''}" data-p="${i}">${p.name}</button>`).join('')}
     ${editing?`<span class="rename"><input id="rn" maxlength="8" value="${P().name}"><button class="iconbtn" id="rnok">확인</button></span>`:`<button class="iconbtn" id="rn-start" title="이름 바꾸기" style="font-size:16px">✎</button>`}</div>`;
@@ -187,29 +181,29 @@ function home(editing=false){SESSION++;
   app.innerHTML=`<div class="screen">${profileBar(editing)}
    <div class="topbar"><h1>${p.name}아, 어떤 공룡을 맞춰 볼까?</h1></div>
    <div class="tiles">${Object.entries(CATS).map(([k,c])=>{const n=DINOS.filter(d=>d.cat===k).length,m=DINOS.filter(d=>d.cat===k&&p.done[d.en]).length;
-     return `<button class="tile ${k}" data-cat="${k}" style="--pic:url('${pic(k)}')"><span>${c.short}</span><small>${m} / ${n} 마리</small></button>`}).join('')}</div>
+     return `<button class="tile ${k}" data-cat="${k}" style="--pic:url('${pic(k)}')"><span>${c.short}</span>${ST.en?`<span class="en">${c.en}</span>`:''}<small>${m} / ${n} 마리</small></button>`}).join('')}</div>
    <div class="modes"><button class="mode quiz" id="quizb">🔊 듣고 찾기<small>이름을 듣고 사진 고르기</small></button><button class="mode book" id="bookb">📖 공룡 도감<small>${got} / ${total} 모았어요</small></button></div>
    <div class="homefoot"><span>조각</span><div class="seg"><button data-n="auto" class="${p.auto?'on':''}">자동 (${p.level})</button>${LEVELS.map(n=>`<button data-n="${n}" class="${!p.auto&&p.level===n?'on':''}">${n}</button>`).join('')}</div>
+   <div class="seg"><button data-en="0" class="${!ST.en?'on':''}">한국어</button><button data-en="1" class="${ST.en?'on':''}">한국어+영어</button></div>
    <button class="iconbtn" id="voicetest" style="font-size:16px">🔊 소리 확인</button></div></div>`;
-  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ST.cur=+b.dataset.p;save();snd('tap');say(P().name+' 차례!');home()});
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ST.cur=+b.dataset.p;save();snd('tap');speak([K('turn','네 차례야!')]);home()});
   const rs=document.getElementById('rn-start');if(rs)rs.onclick=()=>home(true);
   const ok=document.getElementById('rnok');if(ok){const inp=document.getElementById('rn');inp.focus();const fin=()=>{const v=inp.value.trim();if(v)P().name=v;save();home()};ok.onclick=fin;inp.onkeydown=e=>{if(e.key==='Enter')fin()}}
   app.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{snd('tap');picker(b.dataset.cat)});
-  app.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{if(b.dataset.n==='auto')p.auto=true;else{p.auto=false;p.level=+b.dataset.n}save();snd('tap');home()});
-  document.getElementById('voicetest').onclick=()=>{snd('good');say('안녕, '+p.name+'! 공룡 퍼즐을 시작해 볼까?');showToast(voiceStatus(),3500)};
+  app.querySelectorAll('.seg button[data-n]').forEach(b=>b.onclick=()=>{if(b.dataset.n==='auto')p.auto=true;else{p.auto=false;p.level=+b.dataset.n}save();snd('tap');home()});
+  app.querySelectorAll('.seg button[data-en]').forEach(b=>b.onclick=()=>{ST.en=b.dataset.en==='1';save();snd('tap');home()});
+  document.getElementById('voicetest').onclick=()=>{snd('good');speak([K('hello','안녕! 공룡 퍼즐을 시작해 볼까?'),ST.en?E('en_hello',"Hello! Let's play the dinosaur puzzle!"):null]);showToast(voiceStatus(),3500)};
   document.getElementById('quizb').onclick=()=>{snd('tap');quiz()};
   document.getElementById('bookb').onclick=()=>{snd('tap');book()};
 }
-// ---------- 고르기 ----------
 function picker(cat){SESSION++;
   const list=DINOS.filter(d=>d.cat===cat),p=P();
-  app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back" aria-label="뒤로">◀</button><h1>${CATS[cat].name}</h1><span style="width:46px"></span></div>
-   <div class="picks">${list.map((d,i)=>{const dn=p.done[d.en];return `<button class="pick ${dn?'done':''}" data-i="${i}"><img src="${d.img}" alt=""><span class="num">${i+1}</span>${dn?`<span class="lvl">★ ${dn}조각</span>`:''}<span class="q">${dn?d.name:'누구일까?'}</span></button>`}).join('')}</div></div>`;
-  say(CATS[cat].name+'. 누가 숨어 있을까요?');
+  app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back" aria-label="뒤로">◀</button><h1>${CATS[cat].name}${ST.en?` · ${CATS[cat].en}`:''}</h1><span style="width:46px"></span></div>
+   <div class="picks">${list.map((d,i)=>{const dn=p.done[d.en];return `<button class="pick ${dn?'done':''}" data-i="${i}"><img src="${d.img}" alt=""><span class="num">${i+1}</span>${dn?`<span class="lvl">★ ${dn}조각</span>`:''}<span class="q">${dn?d.name+(ST.en?`<small>${d.en}</small>`:''):'누구일까?'}</span></button>`}).join('')}</div></div>`;
+  speak([K('cat_'+cat,CATS[cat].name+'. 누가 숨어 있을까요?')]);
   document.getElementById('back').onclick=()=>{snd('tap');home()};
   app.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{snd('tap');puzzle(list[+b.dataset.i])});
 }
-// ---------- 퍼즐 ----------
 function puzzle(d){SESSION++;
   const p=P(),[cols,rows]=GRID[p.level]||GRID[8],N=cols*rows;
   const order=[...Array(N).keys()].sort(()=>Math.random()-.5);
@@ -218,10 +212,15 @@ function puzzle(d){SESSION++;
   app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back" aria-label="뒤로">◀</button><h1>조각 ${N}개를 맞춰 보세요</h1><button class="iconbtn" id="hint" aria-label="힌트">💡</button></div>
    <div class="puzzle"><div class="boardwrap"><div id="board" style="${vars}">${[...Array(N).keys()].map(i=>`<div class="slot" data-i="${i}" style="--bp:${bp(i)}"></div>`).join('')}</div></div>
    <div class="tray" id="tray" style="${vars}">${order.map(i=>`<div class="piece" data-i="${i}" style="--bp:${bp(i)}"></div>`).join('')}</div></div></div>`;
-  say('조각을 끌어서 맞춰 보세요');
+  speak([K('drag','조각을 끌어서 맞춰 보세요')]);
   document.getElementById('back').onclick=()=>{snd('tap');picker(d.cat)};
   const board=document.getElementById('board'),tray=document.getElementById('tray'),ghost=document.getElementById('ghost');
   const slots=[...board.querySelectorAll('.slot')];
+  // 조각 트레이: 모든 조각이 스크롤 없이 보이도록 열 수·크기 계산
+  function fitTray(){const r=tray.getBoundingClientRect(),gap=8,w=r.width-20,h=r.height-20;if(w<=0||h<=0)return;let best={s:40,c:1};
+    for(let c=1;c<=N;c++){const rw=Math.ceil(N/c);const s=Math.min((w-gap*(c-1))/c,(h-gap*(rw-1))/rw*4/3);if(s>best.s)best={s,c}}
+    tray.style.gridTemplateColumns=`repeat(${best.c},${Math.floor(best.s)}px)`}
+  fitTray();const ro=new ResizeObserver(fitTray);ro.observe(tray);
   let hintOn=false;document.getElementById('hint').onclick=e=>{hintOn=!hintOn;snd('tap');e.currentTarget.classList.toggle('on',hintOn);slots.forEach(s=>s.classList.toggle('hint',hintOn))};
   ghost.style.cssText=vars;
   let remaining=N,drag=null,wrongs=0;
@@ -236,8 +235,8 @@ function puzzle(d){SESSION++;
       ghost.style.display='none';slots.forEach(s=>s.classList.remove('target'));
       const B=board.getBoundingClientRect(),onBoard=gx>B.left&&gx<B.right&&gy>B.top&&gy<B.bottom;
       let hit=null;if(onBoard){const c=Math.min(cols-1,Math.max(0,Math.floor((gx-B.left)/B.width*cols))),rr=Math.min(rows-1,Math.max(0,Math.floor((gy-B.top)/B.height*rows)));hit=rr*cols+c}
-      if(hit===i){slots[i].classList.add('filled');snd('good');remaining--;if(remaining===0)finish(d,N,wrongs);}
-      else{el.classList.remove('gone');if(onBoard){snd('bad');wrongs++;say(wrongs%3===0?'힌트 버튼을 눌러 볼까?':'다른 자리야. 다시 해 볼까?');board.classList.remove('shake');void board.offsetWidth;board.classList.add('shake')}}
+      if(hit===i){slots[i].classList.add('filled');snd('good');remaining--;if(remaining===0){ro.disconnect();finish(d,N,wrongs)}}
+      else{el.classList.remove('gone');if(onBoard){snd('bad');wrongs++;speak(wrongs%3===0?[K('hint','힌트 버튼을 눌러 볼까?')]:[K('retry','다른 자리야. 다시 해 볼까?')]);board.classList.remove('shake');void board.offsetWidth;board.classList.add('shake')}}
       drag=null};
     el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
   });
@@ -247,62 +246,72 @@ function puzzle(d){SESSION++;
 }
 function finish(d,N,wrongs){
   const p=P();p.done[d.en]=Math.max(p.done[d.en]||0,N);
-  let msg='';const li=LEVELS.indexOf(p.level);
-  if(p.auto){if(wrongs===0&&li<LEVELS.length-1){p.level=LEVELS[li+1];msg=`한 번도 안 틀렸어요! 다음엔 ${p.level}조각에 도전!`}
-    else if(wrongs>=6&&li>0){p.level=LEVELS[li-1];msg=`다음엔 ${p.level}조각으로 조금 쉽게 해 볼게요`}}
+  let msg='',msgK=null;const li=LEVELS.indexOf(p.level);
+  if(p.auto){if(wrongs===0&&li<LEVELS.length-1){p.level=LEVELS[li+1];msg=`한 번도 안 틀렸어요! 다음엔 ${p.level}조각에 도전!`;msgK=K('levelup','한 번도 안 틀렸어요! 다음엔 더 어려운 퍼즐에 도전!')}
+    else if(wrongs>=6&&li>0){p.level=LEVELS[li-1];msg=`다음엔 ${p.level}조각으로 조금 쉽게 해 볼게요`;msgK=K('leveldown','다음엔 조금 쉬운 퍼즐로 해 볼게요')}}
   save();
   document.getElementById('board').classList.add('done');snd('win');
   const same=DINOS.filter(x=>x.cat===d.cat),next=same[(same.indexOf(d)+1)%same.length];
   const res=document.getElementById('result');
-  later(()=>{res.innerHTML=`<div class="card"><img src="${d.img}" alt="${d.name}"><div class="name">${d.name}!</div><div class="en">${d.en}</div><div class="intro">${d.intro}</div>${msg?`<div class="levelup">${msg}</div>`:''}
+  later(()=>{res.innerHTML=`<div class="card"><img src="${d.img}" alt="${d.name}"><div class="name">${d.name}!</div><div class="en">${d.en}</div><div class="intro">${d.intro}</div>
+    <div class="fact">${d.fact}${ST.en?`<div class="enf">${d.factEn}</div>`:''}</div>${msg?`<div class="levelup">${msg}</div>`:''}
     <div class="row"><button class="big hear" id="hear">🔊 다시 듣기</button><button class="big again" id="again">다시</button><button class="big next" id="next">다음 공룡 ▶</button><button class="big home" id="homeb">처음으로</button></div></div>`;
-    res.classList.add('show');confetti();roar(d.cat);say('와, 정답! '+d.name+'! '+d.intro+(msg?' '+msg:''),900);
-    document.getElementById('hear').onclick=()=>{roar(d.cat);say(d.name+'! '+d.intro,700)};
+    res.classList.add('show');confetti();roar(d.cat);
+    speak([K('correct','와, 정답!'),...nameItems(d),...introItems(d),...factItems(d),msgK],900);
+    document.getElementById('hear').onclick=()=>{roar(d.cat);speak([...nameItems(d),...introItems(d),...factItems(d)],700)};
     document.getElementById('again').onclick=()=>{snd('tap');res.classList.remove('show');puzzle(d)};
     document.getElementById('next').onclick=()=>{snd('tap');res.classList.remove('show');puzzle(next)};
     document.getElementById('homeb').onclick=()=>{snd('tap');res.classList.remove('show');home()};
   },600);
 }
-// ---------- 듣고 찾기 ----------
 function quiz(){SESSION++;
   const p=P(),ROUNDS=8;const pool=[...DINOS].sort(()=>Math.random()-.5);
   const known=pool.filter(d=>p.done[d.en]),rest=pool.filter(d=>!p.done[d.en]);
   const qs=[...known,...rest].slice(0,ROUNDS);let qi=0,score=0,results=[];
+  const findItems=d=>[K('name_'+d.i,d.name),K(hasBatchim(d.name)?'find_eul':'find_reul',(hasBatchim(d.name)?'을':'를')+' 찾아보세요'),ST.en?E('en_find','Can you find it?'):null];
   function ask(){
     const d=qs[qi];const others=DINOS.filter(x=>x!==d).sort(()=>Math.random()-.5).slice(0,2);const ch=[d,...others].sort(()=>Math.random()-.5);
     app.innerHTML=`<div class="screen quiz"><div class="topbar"><button class="iconbtn" id="back" aria-label="뒤로">◀</button><h1>듣고 찾기</h1><span style="width:46px"></span></div>
       <div class="dots">${qs.map((_,i)=>`<span class="${results[i]?'ok':i===qi?'cur':''}"></span>`).join('')}</div>
-      <div class="ask"><button class="big hear" id="hear">🔊 ${d.name}를 찾아보세요</button></div>
+      <div class="ask"><button class="big hear" id="hear">🔊 ${d.name}${hasBatchim(d.name)?'을':'를'} 찾아보세요${ST.en?`<br><small style="opacity:.8">Find the ${d.en}</small>`:''}</button></div>
       <div class="choices">${ch.map(x=>`<button class="choice" data-en="${x.en}"><img src="${x.img}" alt=""></button>`).join('')}</div></div>`;
-    say(d.name+'는 누구일까요? '+d.name+'를 찾아보세요');
+    speak(findItems(d));
     document.getElementById('back').onclick=()=>{snd('tap');home()};
-    document.getElementById('hear').onclick=()=>say(d.name+'를 찾아보세요');
+    document.getElementById('hear').onclick=()=>speak(findItems(d));
     let lock=false,tries=0;
     app.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{if(lock)return;
       if(b.dataset.en===d.en){lock=true;b.classList.add('right');snd('good');roar(d.cat);if(tries===0)score++;results[qi]=1;
-        say('맞았어! '+d.name+'! '+d.intro,600);later(()=>{qi++;qi<qs.length?ask():doneQuiz()},3800)}
-      else{tries++;b.classList.add('wrong');snd('bad');say('음, 그건 '+DINOS.find(x=>x.en===b.dataset.en).name+'이야. '+d.name+'를 찾아보세요');setTimeout(()=>b.classList.remove('wrong'),500)}});
+        speak([K('right','맞았어!'),...nameItems(d),...introItems(d)],600);later(()=>{qi++;qi<qs.length?ask():doneQuiz()},ST.en?5200:3800)}
+      else{tries++;b.classList.add('wrong');snd('bad');const w=DINOS.find(x=>x.en===b.dataset.en);
+        speak([K('wrong_pre','음, 그건'),K('name_'+w.i,w.name),K(hasBatchim(w.name)?'is_iya':'is_ya',(hasBatchim(w.name)?'이야':'야')+'.'),...findItems(d)]);setTimeout(()=>b.classList.remove('wrong'),500)}});
   }
   function doneQuiz(){
     const res=document.getElementById('result');snd('fanfare');confetti();
-    res.innerHTML=`<div class="card"><div class="name">${score} / ${qs.length} 맞았어요!</div><div class="intro">${score===qs.length?'와, 전부 다 맞았어! 공룡 박사님!':score>=qs.length/2?'잘했어! 다음엔 더 많이 맞춰 보자':'괜찮아, 퍼즐을 더 맞추면 공룡 이름이 익숙해질 거야'}</div>
+    const m=score===qs.length?['q_all','와, 전부 다 맞았어! 공룡 박사님!']:score>=qs.length/2?['q_good','잘했어! 다음엔 더 많이 맞춰 보자']:['q_ok','괜찮아, 퍼즐을 더 맞추면 공룡 이름이 익숙해질 거야'];
+    res.innerHTML=`<div class="card"><div class="name">${score} / ${qs.length} 맞았어요!</div><div class="intro">${m[1]}</div>
       <div class="row"><button class="big again" id="again">한 번 더</button><button class="big home" id="homeb">처음으로</button></div></div>`;
-    res.classList.add('show');say(score+'개 맞았어요! '+(score===qs.length?'전부 다 맞았어, 공룡 박사님!':'잘했어!'),800);
+    res.classList.add('show');speak([K('qscore_'+score,score+'개 맞았어요!'),K(m[0],m[1])],800);
     document.getElementById('again').onclick=()=>{snd('tap');res.classList.remove('show');quiz()};
     document.getElementById('homeb').onclick=()=>{snd('tap');res.classList.remove('show');home()};
   }
   ask();
 }
-// ---------- 도감 ----------
 function book(){SESSION++;
   const p=P(),got=DINOS.filter(d=>p.done[d.en]).length,all=got===DINOS.length;
   app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back" aria-label="뒤로">◀</button><h1>${p.name}의 공룡 도감 (${got}/${DINOS.length})</h1><span style="width:46px"></span></div>
    <div class="picks book">${all?`<div class="trophy">🏆 ${p.name} 공룡 박사! 30마리를 모두 모았어요!</div>`:''}
-   ${Object.entries(CATS).map(([k,c])=>`<div class="sec">${c.name}</div>`+DINOS.filter(d=>d.cat===k).map(d=>{const dn=p.done[d.en];return `<button class="pick ${dn?'done':'locked'}" data-en="${d.en}"><img src="${d.img}" alt="">${dn?`<span class="lvl">★ ${dn}조각</span><span class="q">${d.name}</span>`:'<span class="q">?</span>'}</button>`}).join('')).join('')}</div></div>`;
-  if(all)snd('fanfare');say(all?p.name+' 공룡 박사! 30마리를 모두 모았어요!':got?got+'마리를 모았어요. 어떤 공룡을 볼까?':'아직 모은 공룡이 없어요. 퍼즐을 맞춰 보자!');
+   ${Object.entries(CATS).map(([k,c])=>`<div class="sec">${c.name}${ST.en?` · ${c.en}`:''}</div>`+DINOS.filter(d=>d.cat===k).map(d=>{const dn=p.done[d.en];return `<button class="pick ${dn?'done':'locked'}" data-en="${d.en}"><img src="${d.img}" alt="">${dn?`<span class="lvl">★ ${dn}조각</span><span class="q">${d.name}${ST.en?`<small>${d.en}</small>`:''}</span>`:'<span class="q">?</span>'}</button>`}).join('')).join('')}</div></div>`;
+  if(all)snd('fanfare');speak(all?[K('book_all','공룡 박사! 30마리를 모두 모았어요!')]:got?[K('book_some','지금까지 모은 공룡이야. 어떤 공룡을 볼까?')]:[K('book_none','아직 모은 공룡이 없어요. 퍼즐을 맞춰 보자!')]);
   document.getElementById('back').onclick=()=>{snd('tap');home()};
   app.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{const d=DINOS.find(x=>x.en===b.dataset.en);
-    if(p.done[d.en]){roar(d.cat);say(d.name+'! '+d.intro,600)}else{snd('tap');say('아직 못 만난 공룡이야. 퍼즐을 맞춰 볼까?')}});
+    if(p.done[d.en]){roar(d.cat);speak([...nameItems(d),...introItems(d),...factItems(d)],600);showFact(d)}else{snd('tap');speak([K('book_locked','아직 못 만난 공룡이야. 퍼즐을 맞춰 볼까?')])}});
+}
+function showFact(d){const res=document.getElementById('result');
+  res.innerHTML=`<div class="card"><img src="${d.img}" alt="${d.name}"><div class="name">${d.name}</div><div class="en">${d.en}</div><div class="intro">${d.intro}</div><div class="fact">${d.fact}${ST.en?`<div class="enf">${d.factEn}</div>`:''}</div>
+   <div class="row"><button class="big hear" id="hear">🔊 다시 듣기</button><button class="big home" id="closeb">닫기</button></div></div>`;
+  res.classList.add('show');
+  document.getElementById('hear').onclick=()=>{roar(d.cat);speak([...nameItems(d),...introItems(d),...factItems(d)],700)};
+  document.getElementById('closeb').onclick=()=>{snd('tap');stopSpeech();res.classList.remove('show')};
 }
 function confetti(){const c=document.getElementById('confetti'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
   const cols=['#e8553f','#f6c343','#2e86c9','#4cc46f','#c77dff'],ps=Array.from({length:110},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,v:2+Math.random()*3,s:6+Math.random()*8,c:cols[Math.random()*5|0],r:Math.random()*6}));
