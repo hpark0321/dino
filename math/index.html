@@ -63,6 +63,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);-w
 .eq b{color:var(--gold);font-weight:400}
 .pad{display:grid;grid-template-columns:repeat(var(--padcols),1fr);gap:6px}
 .num{border:0;border-radius:12px;background:var(--panel-2);color:var(--fg);font-family:inherit;font-size:clamp(20px,5vw,30px);padding:8px 0;cursor:pointer;box-shadow:0 3px 0 #141826;display:flex;flex-direction:column;align-items:center;gap:3px;font-variant-numeric:tabular-nums}
+.num .ew{font-size:11px;color:var(--muted);letter-spacing:.02em;font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
 .num .d{display:grid;grid-template-columns:repeat(5,5px);gap:2px}
 .num .d i{width:5px;height:5px;border-radius:50%;background:var(--muted)}
 .num:active{transform:translateY(2px);box-shadow:none}
@@ -105,12 +106,13 @@ table{width:100%;border-collapse:collapse;font-size:17px}td,th{padding:8px 6px;b
 <div class="toast" id="toast"></div>
 
 <script src="data.js"></script>
+<script src="voice/manifest.js"></script>
 <script>
 
 const STAGES={1:{name:'세기',ex:'몇 마리?',cls:'s1'},2:{name:'하나 더 · 하나 빼기',ex:'3 → 4',cls:'s2'},3:{name:'모으기 (덧셈)',ex:'2 + 3',cls:'s3'},4:{name:'덜어내기 (뺄셈)',ex:'5 − 2',cls:'s4'}};
 const RANGES=[5,10,20];
 const LEVELS=[[1,5],[2,5],[3,5],[4,5],[1,10],[2,10],[3,10],[4,10],[1,20],[2,20],[3,20],[4,20]];
-const K=['영','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열','열하나','열둘','열셋','열넷','열다섯','열여섯','열일곱','열여덟','열아홉','스물'];
+const K_=['영','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열','열하나','열둘','열셋','열넷','열다섯','열여섯','열일곱','열여덟','열아홉','스물'];
 const M=['영','한','두','세','네','다섯','여섯','일곱','여덟','아홉','열','열한','열두','열세','열네','열다섯','열여섯','열일곱','열여덟','열아홉','스무'];
 const mari=n=>M[n]+' 마리';
 const ROUNDS=10,EGG_NEED=10;
@@ -118,9 +120,9 @@ const app=document.getElementById('app'),toast=document.getElementById('toast');
 let SESSION=0;const later=(fn,ms)=>{const my=SESSION;setTimeout(()=>{if(SESSION===my)fn()},ms)};
 
 // ---------- 저장 ----------
-let ST={cur:0,profiles:[mk('첫째'),mk('둘째')]};
+let ST={cur:0,en:true,profiles:[mk('첫째'),mk('둘째')]};
 function mk(name){return {name,level:4,auto:true,eggs:0,hatched:[],stats:{},today:{d:'',n:0}}}
-try{const s=JSON.parse(localStorage.getItem('dinomath-v1')||'null');if(s&&s.profiles)ST=s}catch(e){}
+try{const s=JSON.parse(localStorage.getItem('dinomath-v1')||'null');if(s&&s.profiles)ST=Object.assign({en:true},s)}catch(e){}
 function save(){try{localStorage.setItem('dinomath-v1',JSON.stringify(ST))}catch(e){}}
 const P=()=>ST.profiles[ST.cur];
 function showToast(t,ms=2500){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),ms)}
@@ -137,11 +139,31 @@ function snd(k){try{ctx();const t=ac.currentTime;
   else if(k==='fanfare'){[523,523,523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.3,'triangle',.3))}
   else if(k==='crack'){tone(200,t,.1,'square',.2);tone(150,t+.15,.1,'square',.2);tone(900,t+.4,.4,'triangle',.25)}
 }catch(e){}}
-const S=window.speechSynthesis;
-function koVoice(){try{const vs=S.getVoices();return vs.find(v=>/^ko/i.test(v.lang)&&/Yuna|Sora|Google|Microsoft/i.test(v.name))||vs.find(v=>/^ko/i.test(v.lang))||null}catch(e){return null}}
-function say(text,delay=0,rate=.85){if(!S)return;setTimeout(()=>{try{S.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=rate;u.pitch=1.05;const v=koVoice();if(v)u.voice=v;S.speak(u)}catch(e){}},delay)}
+/* ---- 음성 엔진: 녹음 클립(VOICE_CLIPS / voice 폴더) 우선, 없으면 기기 TTS ---- */
+const CLIPS=window.VOICE_CLIPS||{};const FILES=new Set(window.VOICE_FILES||[]);
+const clipUrl=k=>CLIPS[k]||(FILES.has(k)?'voice/'+k+'.mp3':null);
+const hasClips=()=>Object.keys(CLIPS).length>0||FILES.size>0;
+const AUD=new Audio();AUD.preload='auto';let audioUnlocked=false;
+addEventListener('pointerdown',()=>{if(audioUnlocked)return;audioUnlocked=true;try{AUD.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';AUD.play().catch(()=>{})}catch(e){}},{capture:true});
+const S=window.speechSynthesis;let seqId=0;
 if(S){try{S.getVoices();S.onvoiceschanged=()=>S.getVoices()}catch(e){}}
-function voiceStatus(){if(!S)return '이 브라우저는 음성을 지원하지 않습니다';const v=koVoice();return v?'한국어 음성 준비됨: '+v.name:'한국어 음성이 없습니다. 휴대전화 설정에서 한국어 TTS를 설치해 주세요'}
+function pickVoice(lang){try{const vs=S.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().replace('_','-').startsWith(lang));
+  const score=v=>(/premium|프리미엄/i.test(v.name)?8:0)+(/enhanced|향상/i.test(v.name)?6:0)+(/natural|neural/i.test(v.name)?5:0)+(/yuna|sora|jenny|aria|samantha|ava|zoe|google/i.test(v.name)?2:0)+(/female|여성/i.test(v.name)?1:0)+(v.localService?1:0);
+  return vs.sort((a,b)=>score(b)-score(a))[0]||null}catch(e){return null}}
+function stopSpeech(){seqId++;try{AUD.onended=null;AUD.pause()}catch(e){}try{S&&S.cancel()}catch(e){}}
+const K=(k,t)=>({k,t,lang:'ko'}),E=(k,t)=>({k,t,lang:'en'});
+// items: 문자열 또는 [{k,t,lang}] ; 모든 항목에 클립이 있으면 클립 재생, 아니면 TTS
+function speak(items,delay=0){if(typeof items==='string')items=[{t:items,lang:'ko'}];items=items.filter(Boolean);stopSpeech();const my=seqId;
+  setTimeout(()=>{if(my!==seqId)return;const useClips=hasClips()&&items.length&&items.every(i=>i.k&&clipUrl(i.k));useClips?playClips(items,0,my):tts(items,my)},delay)}
+function playClips(items,i,my){if(my!==seqId||i>=items.length)return;try{AUD.src=clipUrl(items[i].k);AUD.onended=()=>playClips(items,i+1,my);AUD.play().catch(()=>{if(my===seqId)tts(items.slice(i),my)})}catch(e){tts(items.slice(i),my)}}
+function tts(items,my){if(!S||my!==seqId)return;const groups=[];items.forEach(i=>{const l=i.lang||'ko',g=groups[groups.length-1];if(g&&g.lang===l)g.t+=' '+i.t;else groups.push({lang:l,t:i.t})});
+  groups.forEach(g=>{try{const u=new SpeechSynthesisUtterance(g.t);u.lang=g.lang==='en'?'en-US':'ko-KR';u.rate=g.lang==='en'?.9:.85;u.pitch=1.05;const v=pickVoice(g.lang);if(v)u.voice=v;S.speak(u)}catch(e){}})}
+const say=(text,delay=0)=>speak(text,delay);
+function voiceStatus(){if(hasClips())return '녹음된 목소리를 사용 중입니다';if(!S)return '이 브라우저는 음성을 지원하지 않습니다';const v=pickVoice('ko');return v?'기기 음성 사용: '+v.name:'한국어 음성이 없습니다. 설정에서 한국어 TTS를 설치해 주세요'}
+const hasBatchim=s=>{const c=s.charCodeAt(s.length-1)-0xAC00;return c>=0&&c<11172&&c%28!==0};
+
+const EN=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
+const KN=i=>K('k_'+i,K_[i]),MR=i=>K('mari_'+i,M[i]+' 마리'),EN_=i=>E('e_'+i,EN[i]);
 
 // ---------- 홈 ----------
 function profileBar(editing){
@@ -155,13 +177,15 @@ function home(editing=false){SESSION++;
    <div class="stages">${Object.entries(STAGES).map(([k,s])=>`<button class="tile ${s.cls} ${+k===cs?'cur':''}" data-s="${k}">${k}단계<small>${s.name}</small><span class="ex">${s.ex}</span></button>`).join('')}</div>
    <button class="eggbar" id="bookb"><span>🥚 알 ${p.eggs}/${EGG_NEED}</span><span class="bar"><i style="width:${p.eggs/EGG_NEED*100}%"></i></span><span>🦖 ${p.hatched.length}마리</span></button>
    <div class="homefoot"><span>수 범위</span><div class="seg"><button data-r="auto" class="${p.auto?'on':''}">자동 (${cr})</button>${RANGES.map(r=>`<button data-r="${r}" class="${!p.auto&&cr===r?'on':''}">${r}</button>`).join('')}</div>
+   <div class="seg"><button data-en="0" class="${!ST.en?'on':''}">한국어</button><button data-en="1" class="${ST.en?'on':''}">한국어+영어</button></div>
    <button class="iconbtn" id="voicetest" style="font-size:16px">🔊 소리 확인</button></div></div>`;
-  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ST.cur=+b.dataset.p;save();snd('tap');say(P().name+' 차례!');home()});
+  app.querySelectorAll('.seg button[data-en]').forEach(b=>b.onclick=()=>{ST.en=b.dataset.en==='1';save();snd('tap');home()});
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ST.cur=+b.dataset.p;save();snd('tap');speak([K('turn','네 차례야!')]);home()});
   const rs=document.getElementById('rn-start');if(rs)rs.onclick=()=>home(true);
   const ok=document.getElementById('rnok');if(ok){const inp=document.getElementById('rn');inp.focus();const fin=()=>{const v=inp.value.trim();if(v)P().name=v;save();home()};ok.onclick=fin;inp.onkeydown=e=>{if(e.key==='Enter')fin()}}
   app.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{snd('tap');const s=+b.dataset.s;const li=LEVELS.findIndex(l=>l[0]===s&&l[1]===cr);play(li>=0?li:p.level)});
-  app.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{if(b.dataset.r==='auto')p.auto=true;else{p.auto=false;const li=LEVELS.findIndex(l=>l[0]===cs&&l[1]===+b.dataset.r);p.level=li}save();snd('tap');home()});
-  document.getElementById('voicetest').onclick=()=>{snd('good');say('안녕, '+p.name+'! 공룡을 같이 세어 볼까?');showToast(voiceStatus(),3500)};
+  app.querySelectorAll('.seg button[data-r]').forEach(b=>b.onclick=()=>{if(b.dataset.r==='auto')p.auto=true;else{p.auto=false;const li=LEVELS.findIndex(l=>l[0]===cs&&l[1]===+b.dataset.r);p.level=li}save();snd('tap');home()});
+  document.getElementById('voicetest').onclick=()=>{snd('good');speak([K('hello','안녕! 공룡을 같이 세어 볼까?'),ST.en?E('en_hello',"Hello! Let's count the dinosaurs!"):null]);showToast(voiceStatus(),3500)};
   document.getElementById('bookb').onclick=()=>{snd('tap');book()};
   document.getElementById('parent').onclick=()=>{snd('tap');gate()};
 }
@@ -169,11 +193,11 @@ function home(editing=false){SESSION++;
 // ---------- 문제 생성 ----------
 function makeQ(stage,range){
   const sp=pick(TOK);
-  if(stage===1){const n=1+rnd(range);return {stage,sp,n,ans:n,prompt:`공룡이 몇 마리일까? 하나씩 눌러서 세어 봐`,eq:['?']}}
+  if(stage===1){const n=1+rnd(range);return {stage,sp,n,ans:n,prompt:`공룡이 몇 마리일까? 하나씩 눌러서 세어 봐`,voice:[K('s1','공룡이 몇 마리일까? 하나씩 눌러서 세어 봐')],eq:['?']}}
   if(stage===2){const plus=Math.random()<.5;let n=plus?1+rnd(range-1):2+rnd(range-1);const ans=plus?n+1:n-1;
-    return {stage,sp,n,plus,ans,prompt:`공룡이 ${mari(n)}야. ${plus?'한 마리가 더 오면':'한 마리가 가 버리면'} 몇 마리?`,eq:[n,plus?'+':'−',1,'=','?']}}
-  if(stage===3){const a=1+rnd(range-1),b=1+rnd(range-a);return {stage,sp,a,b,ans:a+b,prompt:`왼쪽에 ${mari(a)}, 오른쪽에 ${mari(b)}. 모으면 모두 몇 마리?`,eq:[a,'+',b,'=','?']}}
-  const n=2+rnd(range-1),b=1+rnd(n-1);return {stage,sp,n,b,ans:n-b,prompt:`공룡 ${mari(n)} 중에 ${mari(b)}가 물 마시러 가. 공룡을 ${M[b]} 마리 눌러서 보내 줘`,eq:[n,'−',b,'=','?']};
+    return {stage,sp,n,plus,ans,prompt:`공룡이 ${mari(n)}야. ${plus?'한 마리가 더 오면':'한 마리가 가 버리면'} 몇 마리?`,voice:[K('s2_a','공룡이'),K('mariya_'+n,M[n]+' 마리야.'),K(plus?'s2_plus':'s2_minus',plus?'한 마리가 더 오면 몇 마리?':'한 마리가 가 버리면 몇 마리?')],eq:[n,plus?'+':'−',1,'=','?']}}
+  if(stage===3){const a=1+rnd(range-1),b=1+rnd(range-a);return {stage,sp,a,b,ans:a+b,prompt:`왼쪽에 ${mari(a)}, 오른쪽에 ${mari(b)}. 모으면 모두 몇 마리?`,voice:[K('s3_left','왼쪽에'),MR(a),K('s3_right','오른쪽에'),MR(b),K('s3_end','모으면 모두 몇 마리?')],eq:[a,'+',b,'=','?']}}
+  const n=2+rnd(range-1),b=1+rnd(n-1);return {stage,sp,n,b,ans:n-b,prompt:`공룡 ${mari(n)} 중에 ${mari(b)}가 물 마시러 가. 공룡을 ${M[b]} 마리 눌러서 보내 줘`,voice:[K('s4_a','공룡'),MR(n),K('s4_b','중에서'),MR(b),K('s4_c','물 마시러 가요. 공룡을'),MR(b),K('s4_d','눌러서 보내 줘')],eq:[n,'−',b,'=','?']};
 }
 const frameHTML=(id,n,range,sp,extraCells=0)=>{const cells=Math.max(range>10?20:range>5?10:5,n+extraCells);const rows=Math.ceil(cells/5)*5;
   return `<div class="frame" id="${id}" style="--img:url('${sp.img}')">${[...Array(rows).keys()].map(i=>`<div class="cell">${i<n?`<div class="tok" data-k="${i}"></div>`:''}</div>`).join('')}</div>`};
@@ -192,10 +216,10 @@ function play(level){SESSION++;
         <div class="prompt"><button class="big hear" id="ptxt">${q.prompt}</button></div>
         <div class="act" id="act"></div>
         <div class="eq" id="eq">${q.eq.map(x=>x==='?'?'<b>?</b>':x).join(' ')}</div>
-        <div class="pad" style="--padcols:${padcols}">${nums.map(n=>`<button class="num" data-n="${n}">${n}${n<=10&&range<=10?`<span class="d">${'<i></i>'.repeat(n)}</span>`:''}</button>`).join('')}</div>
+        <div class="pad" style="--padcols:${padcols}">${nums.map(n=>`<button class="num" data-n="${n}">${n}${n<=10&&range<=10?`<span class="d">${'<i></i>'.repeat(n)}</span>`:''}${ST.en?`<span class="ew">${EN[n]}</span>`:''}</button>`).join('')}</div>
       </div></div>`;
     document.getElementById('back').onclick=()=>{snd('tap');home()};
-    document.getElementById('hear').onclick=document.getElementById('ptxt').onclick=()=>say(q.prompt);
+    document.getElementById('hear').onclick=document.getElementById('ptxt').onclick=()=>speak(q.voice);
     const pens=document.getElementById('pens'),act=document.getElementById('act');
     let ready=stage===1||stage===2,sent=0,counted=new Set();
     // ---- 장면 구성 ----
@@ -204,43 +228,46 @@ function play(level){SESSION++;
       later(()=>{const f=document.getElementById('f1');if(!f)return;if(q.plus){const c=f.children[q.n];c.innerHTML=`<div class="tok new" data-k="${q.n}"></div>`;snd('good')}else{const t=f.querySelector(`.tok[data-k="${q.n-1}"]`);t.classList.add('gone');snd('soft')}bindCount()},2200)}
     else if(stage===3){pens.innerHTML=`<div class="pen"><span class="lbl">왼쪽</span>${frameHTML('f1',q.a,range<=5?5:10,q.sp)}<span class="cnt">${q.a}</span></div><div class="pen"><span class="lbl">오른쪽</span>${frameHTML('f2',q.b,range<=5?5:10,q.sp)}<span class="cnt">${q.b}</span></div>`;
       act.innerHTML=`<button class="big next" id="merge">한곳에 모으기 ▶</button>`;
-      document.getElementById('merge').onclick=()=>{snd('win');say('모두 한곳에 모였어! 몇 마리인지 세어 봐');pens.innerHTML=`<div class="pen">${frameHTML('f1',q.a+q.b,range,q.sp)}<span class="cnt" id="cnt"></span></div>`;act.innerHTML='';ready=true;bindCount()}}
+      document.getElementById('merge').onclick=()=>{snd('win');speak([K('merged','모두 한곳에 모였어! 몇 마리인지 세어 봐')]);pens.innerHTML=`<div class="pen">${frameHTML('f1',q.a+q.b,range,q.sp)}<span class="cnt" id="cnt"></span></div>`;act.innerHTML='';ready=true;bindCount()}}
     else{pens.innerHTML=`<div class="pen">${frameHTML('f1',q.n,range,q.sp)}<span class="cnt" id="cnt"></span></div><div class="pen away"><span class="lbl">💧 물 마시러 간 공룡</span><span class="cnt" id="away">0</span></div>`;
-      pens.querySelectorAll('.tok').forEach(t=>t.onclick=()=>{if(ready||t.classList.contains('gone'))return;t.classList.add('gone');sent++;snd('soft');document.getElementById('away').textContent=sent;say(K[sent]);
-        if(sent===q.b){ready=true;later(()=>{say(`${mari(q.b)}가 갔어. 남은 공룡은 몇 마리? 눌러서 세어 봐`);bindCount()},900)}})}
-    say(q.prompt,300);
-    function bindCount(){counted=new Set();pens.querySelectorAll('.tok:not(.gone)').forEach(t=>{t.classList.remove('on');t.onclick=()=>{if(counted.has(t))return;counted.add(t);t.classList.add('on');snd('count');say(K[counted.size],0,1);const c=document.getElementById('cnt');if(c)c.textContent=counted.size}})}
+      pens.querySelectorAll('.tok').forEach(t=>t.onclick=()=>{if(ready||t.classList.contains('gone'))return;t.classList.add('gone');sent++;snd('soft');document.getElementById('away').textContent=sent;speak([KN(sent)]);
+        if(sent===q.b){ready=true;later(()=>{speak([MR(q.b),K('sent_end','갔어. 남은 공룡은 몇 마리? 눌러서 세어 봐')]);bindCount()},900)}})}
+    speak(q.voice,300);
+    function bindCount(){counted=new Set();pens.querySelectorAll('.tok:not(.gone)').forEach(t=>{t.classList.remove('on');t.onclick=()=>{if(counted.has(t))return;counted.add(t);t.classList.add('on');snd('count');speak([KN(counted.size)]);const c=document.getElementById('cnt');if(c)c.textContent=counted.size}})}
     if(stage===1)bindCount();
     // ---- 답 ----
     let tries=0,lock=false;
-    app.querySelectorAll('.num').forEach(b=>b.onclick=()=>{if(lock)return;if(!ready){snd('soft');say(stage===3?'먼저 모으기 버튼을 눌러 봐':stage===4?`먼저 공룡 ${M[q.b]} 마리를 눌러서 보내 줘`:'잠깐만, 공룡이 움직이고 있어');return}
+    app.querySelectorAll('.num').forEach(b=>b.onclick=()=>{if(lock)return;if(!ready){snd('soft');speak(stage===3?[K('not3','먼저 모으기 버튼을 눌러 봐')]:stage===4?[K('not4','먼저 공룡을 눌러서 보내 줘')]:[K('not2','잠깐만, 공룡이 움직이고 있어')]);return}
       const n=+b.dataset.n;
       if(n===q.ans){lock=true;b.classList.add('right');snd('win');document.getElementById('eq').innerHTML=q.eq.map(x=>x==='?'?`<b>${q.ans}</b>`:x).join(' ');
         const sc=tries===0?2:1;results[qi]=sc;if(sc===2)firstTry++;stat(stage,range,sc===2);
-        say((tries===0?'맞았어! ':'그래, 맞아! ')+readEq(q),200);later(()=>{qi++;next()},3200)}
+        speak([K(tries===0?'right1':'right2',tries===0?'맞았어!':'그래, 맞아!'),...readEq(q)],200);later(()=>{qi++;next()},ST.en?4600:3200)}
       else{tries++;b.classList.add('wrong');snd('soft');setTimeout(()=>b.classList.remove('wrong'),500);
-        if(tries===1){say('음, 같이 세어 볼까?');countAlong()}
+        if(tries===1){speak([K('wrong1','음, 같이 세어 볼까?')]);countAlong()}
         else{lock=true;const r=app.querySelector(`.num[data-n="${q.ans}"]`);r.classList.add('right');results[qi]=0;stat(stage,range,false);
-          document.getElementById('eq').innerHTML=q.eq.map(x=>x==='?'?`<b>${q.ans}</b>`:x).join(' ');say(`정답은 ${K[q.ans]}이야. `+readEq(q),200);later(()=>{qi++;next()},3600)}}});
+          document.getElementById('eq').innerHTML=q.eq.map(x=>x==='?'?`<b>${q.ans}</b>`:x).join(' ');speak([K('ans_is','정답은'),K('kiya_'+q.ans,K_[q.ans]+(hasBatchim(K_[q.ans])?'이야.':'야.')),...readEq(q)],200);later(()=>{qi++;next()},ST.en?5000:3600)}}});
     function countAlong(){const toks=[...pens.querySelectorAll('.tok:not(.gone)')];toks.forEach(t=>t.classList.remove('on'));
-      toks.forEach((t,i)=>later(()=>{t.classList.add('on');snd('count');say(K[i+1],0,1);const c=document.getElementById('cnt');if(c)c.textContent=i+1;if(i===toks.length-1)setTimeout(()=>say(`모두 ${mari(toks.length)}! 숫자를 눌러 봐`),700)},1000+i*650))}
+      toks.forEach((t,i)=>later(()=>{t.classList.add('on');snd('count');speak([KN(i+1)]);const c=document.getElementById('cnt');if(c)c.textContent=i+1;if(i===toks.length-1)later(()=>speak([K('all','모두'),MR(toks.length),K('press_num','숫자를 눌러 봐')]),700)},1000+i*650))}
   }
-  function readEq(q){if(q.stage===1)return `공룡은 모두 ${mari(q.ans)}!`;if(q.stage===2)return `${K[q.n]} ${q.plus?'더하기':'빼기'} 하나는 ${K[q.ans]}!`;if(q.stage===3)return `${K[q.a]} 더하기 ${K[q.b]}는 ${K[q.ans]}!`;return `${K[q.n]} 빼기 ${K[q.b]}는 ${K[q.ans]}!`}
+  function readEq(q){const keun=i=>K('keun_'+i,K_[i]+(hasBatchim(K_[i])?'은':'는'));const en=ST.en;
+    if(q.stage===1)return [K('all_of','공룡은 모두'),MR(q.ans),...(en?[E('e_there','There are'),EN_(q.ans),E('e_dinos','dinosaurs!')]:[])];
+    const a=q.stage===2?q.n:q.stage===3?q.a:q.n,b=q.stage===2?1:q.b,plus=q.stage===3||(q.stage===2&&q.plus);
+    return [KN(a),K(plus?'plus':'minus',plus?'더하기':'빼기'),keun(b),KN(q.ans),...(en?[EN_(a),E(plus?'e_plus':'e_minus',plus?'plus':'minus'),EN_(b),E('e_is','is'),EN_(q.ans)]:[])]}
   function stat(s,r,ok){const k=s+'-'+r,st=p.stats[k]||(p.stats[k]={n:0,ok:0});st.n++;if(ok)st.ok++;const d=new Date().toISOString().slice(0,10);if(p.today.d!==d)p.today={d,n:0};p.today.n++;save()}
   function endSession(){
-    let msg='';if(p.auto){if(firstTry>=8&&p.level<LEVELS.length-1){p.level++;msg='아주 잘했어! 다음엔 조금 더 어려운 문제에 도전!'}else if(firstTry<=4&&p.level>0){p.level--;msg='다음엔 조금 쉬운 문제로 해 볼게'}}
+    const prevLevel=p.level;let msg='';if(p.auto){if(firstTry>=8&&p.level<LEVELS.length-1){p.level++;msg='아주 잘했어! 다음엔 조금 더 어려운 문제에 도전!'}else if(firstTry<=4&&p.level>0){p.level--;msg='다음엔 조금 쉬운 문제로 해 볼게'}}
     p.eggs++;const hatch=p.eggs>=EGG_NEED;if(hatch)p.eggs=0;save();
     const res=document.getElementById('result');snd('fanfare');confetti();
     res.innerHTML=`<div class="card"><div class="name">${firstTry} / ${ROUNDS} 한 번에 맞았어!</div><div class="sub">${msg||'오늘은 여기까지! 잘했어'}</div>
       ${hatch?`<div class="egg" id="egg">🥚</div><div class="sub">알이 꿈틀꿈틀! 알을 눌러 봐</div>`:`<div class="sub">🥚 알 ${p.eggs} / ${EGG_NEED} — ${EGG_NEED-p.eggs}번 더 하면 알이 부화해요</div>`}
       <div class="row">${hatch?'':'<button class="big again" id="again">한 번 더</button><button class="big home" id="homeb">처음으로</button>'}</div></div>`;
-    res.classList.add('show');say(`${K[firstTry]} 문제를 한 번에 맞았어! `+(msg||'오늘은 여기까지, 잘했어!')+(hatch?' 알이 꿈틀꿈틀! 알을 눌러 봐':''),800);
+    res.classList.add('show');speak([K('ms_'+firstTry,K_[firstTry]+' 문제를 한 번에 맞았어!'),msg?K(p.level>prevLevel?'lv_up':'lv_down',msg):K('today','오늘은 여기까지, 잘했어!'),hatch?K('egg','알이 꿈틀꿈틀! 알을 눌러 봐'):null],800);
     const ag=document.getElementById('again');if(ag)ag.onclick=()=>{snd('tap');res.classList.remove('show');play(p.level)};
     const hb=document.getElementById('homeb');if(hb)hb.onclick=()=>{snd('tap');res.classList.remove('show');home()};
     const egg=document.getElementById('egg');if(egg)egg.onclick=()=>{egg.classList.add('crack');snd('crack');
       const left=TOK.filter(t=>!p.hatched.includes(t.en));const d=left.length?pick(left):pick(TOK);if(left.length){p.hatched.push(d.en);save()}
-      setTimeout(()=>{res.innerHTML=`<div class="card"><img src="${d.photo}" alt=""><div class="name">아기 ${d.name} 탄생!</div><div class="sub">${p.name}의 공룡 친구가 ${p.hatched.length}마리가 됐어요</div>
-        <div class="row"><button class="big again" id="again">한 번 더</button><button class="big home" id="homeb">처음으로</button></div></div>`;confetti();snd('fanfare');say(`아기 ${d.name}가 태어났어! ${p.name}의 공룡 친구가 ${mari(p.hatched.length)}가 됐어`,500);
+      setTimeout(()=>{res.innerHTML=`<div class="card"><img src="${d.photo}" alt=""><div class="name">아기 ${d.name} 탄생!</div>${ST.en?`<div class="sub" style="color:var(--muted)">A baby ${d.en} is born!</div>`:''}<div class="sub">${p.name}의 공룡 친구가 ${p.hatched.length}마리가 됐어요</div>
+        <div class="row"><button class="big again" id="again">한 번 더</button><button class="big home" id="homeb">처음으로</button></div></div>`;confetti();snd('fanfare');speak([K('baby','아기'),K('name_'+TOK.indexOf(d),d.name),K(hasBatchim(d.name)?'born_i':'born_ga',(hasBatchim(d.name)?'이':'가')+' 태어났어!'),ST.en?E('en_born_'+TOK.indexOf(d),'A baby '+d.en+' is born!'):null,K('friends_more','공룡 친구가 늘었어!')],500);
         document.getElementById('again').onclick=()=>{snd('tap');res.classList.remove('show');play(p.level)};document.getElementById('homeb').onclick=()=>{snd('tap');res.classList.remove('show');home()}},900)};
   }
   next();
@@ -249,15 +276,15 @@ function play(level){SESSION++;
 function book(){SESSION++;const p=P();
   app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back">◀</button><h1>${p.name}의 공룡 친구 (${p.hatched.length}/${TOK.length})</h1><span style="width:46px"></span></div>
    <div class="picks">${TOK.map(t=>{const h=p.hatched.includes(t.en);return `<button class="pick ${h?'':'locked'}" data-en="${t.en}"><img src="${t.img}" alt=""><span class="q">${h?t.name:'?'}</span></button>`}).join('')}</div></div>`;
-  say(p.hatched.length?`공룡 친구가 ${mari(p.hatched.length)} 있어`:'아직 친구가 없어. 문제를 풀어서 알을 모아 보자!');
+  speak(p.hatched.length?[K('book_has','공룡 친구들이야!')]:[K('book_none','아직 친구가 없어. 문제를 풀어서 알을 모아 보자!')]);
   document.getElementById('back').onclick=()=>{snd('tap');home()};
-  app.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{const t=TOK.find(x=>x.en===b.dataset.en);snd('tap');say(p.hatched.includes(t.en)?t.name+'!':'아직 알에서 안 나왔어')});
+  app.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{const t=TOK.find(x=>x.en===b.dataset.en);snd('tap');speak(p.hatched.includes(t.en)?[K('name_'+TOK.indexOf(t),t.name+'!'),ST.en?E('en_name_'+TOK.indexOf(t),t.en+'!'):null]:[K('not_hatched','아직 알에서 안 나왔어')])});
 }
 // ---------- 부모 ----------
 function gate(){SESSION++;const a=3+rnd(7),b=3+rnd(7);
   app.innerHTML=`<div class="screen"><div class="topbar"><button class="iconbtn" id="back">◀</button><h1>부모 확인</h1><span style="width:46px"></span></div>
    <div class="gate" style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px"><div style="font-size:26px">${a} × ${b} = ?</div><input id="g" inputmode="numeric" autocomplete="off"><button class="big next" id="ok">확인</button></div></div>`;
-  document.getElementById('back').onclick=home;const g=document.getElementById('g');g.focus();
+  document.getElementById('back').onclick=()=>home();const g=document.getElementById('g');g.focus();
   const chk=()=>{if(+g.value===a*b)parent();else{g.value='';showToast('다시 입력해 주세요')}};document.getElementById('ok').onclick=chk;g.onkeydown=e=>{if(e.key==='Enter')chk()};
 }
 function parent(){const p=P();
@@ -267,7 +294,7 @@ function parent(){const p=P();
    <table><tr><th>단계</th><th>범위</th><th>푼 문제</th><th>한 번에 정답</th></tr>${rows}</table>
    <p style="color:var(--muted);font-size:14px">단계는 10문제 중 8개 이상을 한 번에 맞히면 올라가고, 4개 이하면 내려갑니다. 첫 화면에서 단계·범위를 직접 고를 수도 있습니다.</p>
    <div class="row"><button class="big home" id="reset">이 아이 기록 초기화</button></div></div></div>`;
-  document.getElementById('back').onclick=home;
+  document.getElementById('back').onclick=()=>home();
   document.getElementById('reset').onclick=()=>{const n=p.name;ST.profiles[ST.cur]=mk(n);save();showToast('초기화했습니다');home()};
 }
 function confetti(){const c=document.getElementById('confetti'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
